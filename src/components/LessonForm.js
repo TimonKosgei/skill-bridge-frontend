@@ -2,12 +2,30 @@ import React from "react";
 
 const LessonForm = ({ index, handleLessonChange }) => {
   return (
-    <form className="space-y-4">
-      <input type="text" name="title" placeholder="Lesson Title" onChange={(e) => handleLessonChange(index, e)} className="w-full p-2 border border-gray-300 rounded" required />
-      <textarea name="description" placeholder="Lesson Description" onChange={(e) => handleLessonChange(index, e)} className="w-full p-2 border border-gray-300 rounded" required></textarea>
-      <input type="text" name="video_url" placeholder="Video URL" onChange={(e) => handleLessonChange(index, e)} className="w-full p-2 border border-gray-300 rounded" required />
-      <input type="number" name="lesson_order" placeholder="Lesson Order" onChange={(e) => handleLessonChange(index, e)} className="w-full p-2 border border-gray-300 rounded" required />
-    </form>
+    <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+      <h3 className="text-lg font-semibold">Lesson {index + 1}</h3>
+
+      <label className="block mt-2">
+        <span className="text-gray-700">Lesson Title</span>
+        <input
+          type="text"
+          name="title"
+          className="mt-1 p-2 w-full border rounded-lg"
+          onChange={(e) => handleLessonChange(index, e)}
+          required
+        />
+      </label>
+
+      <label className="block mt-2">
+        <span className="text-gray-700">Lesson Description</span>
+        <textarea
+          name="description"
+          className="mt-1 p-2 w-full border rounded-lg"
+          onChange={(e) => handleLessonChange(index, e)}
+          required
+        ></textarea>
+      </label>
+    </div>
   );
 };
 

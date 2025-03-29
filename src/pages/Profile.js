@@ -1,45 +1,112 @@
-import React, { useState, useEffect } from 'react';
-
+import { useState } from 'react';
 import Header from '../components/Header';
 
-const Profile = ({ user }) => {
-  const [data,setData] = useState([]);
-  const [loading, setLoadng] = useState(true);
-  const [error, setError] = useState(null);
+const ProfilePage = () => {
+  const [activeTab, setActiveTab] = useState('achievements');
 
-  useEffect(() => {
-    fetch('http://127.0.0.1:5000/users/1')
-    .then(response =>{
-      if (!response.ok) {
-        throw new Error(`Http error! Status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => setData(data))
-    .catch(error => setError(error))
-    .finally(() => setLoadng(false));
-  }
-  ,[]);
+  const userProfile = {
+    name: "John Doe",
+    email: "john.doe@example.com",
+    bio: "Web Developer | Tech Enthusiast | Lifelong Learner",
+    profilePicture: "https://via.placeholder.com/150", // Placeholder image
+    achievements: [
+      "Completed 10 courses",
+      "Top 5% in coding challenges",
+      "Contributed to open-source projects"
+    ]
+  };
 
-//error handling
-
-console.log(loading)
-console.log(error)
   return (
     <>
       <Header />
-      <div className="container mx-auto p-8">
-        <div className="bg-white p-6 rounded shadow-md">
-          <div className="flex flex-col lg:flex-row items-center">
-            <img src={data.profile_picture_url} alt={data.username} className="w-32 h-32 rounded-full mb-4 lg:mb-0 lg:mr-4" />
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-4">{data.username}</h1>
-              <p className="text-gray-700 mb-2"><strong>Email:</strong> {data.email}</p>
-              <p className="text-gray-700 mb-2"><strong>First Name:</strong> {data.first_name}</p>
-              <p className="text-gray-700 mb-2"><strong>Last Name:</strong> {data.last_name}</p>
-              <p className="text-gray-700 mb-2"><strong>Role:</strong> {data.role}</p>
-              <p className="text-gray-700"><strong>Bio:</strong> {data.bio}</p>
-            </div>
+      <div style={{ display: "flex", justifyContent: "center", padding: "20px" }}>
+        
+        {/* Profile Section */}
+        <div style={{ maxWidth: "600px", width: "100%", padding: "20px", textAlign: "center" }}>
+          <img 
+            src={userProfile.profilePicture} 
+            alt="Profile" 
+            style={{ width: "120px", height: "120px", borderRadius: "50%", objectFit: "cover" }}
+          />
+          <h2>{userProfile.name}</h2>
+          <p style={{ color: "#555" }}>{userProfile.email}</p>
+          <p>{userProfile.bio}</p>
+
+          {/* Toggle Buttons */}
+          <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "20px" }}>
+            <button
+              onClick={() => setActiveTab('achievements')}
+              style={{
+                padding: "10px 15px",
+                cursor: "pointer",
+                background: activeTab === 'achievements' ? "#007BFF" : "#f0f0f0",
+                color: activeTab === 'achievements' ? "#fff" : "#000",
+                border: "none",
+                borderRadius: "5px"
+              }}>
+              🏆 Achievements
+            </button>
+            <button
+              onClick={() => setActiveTab('editProfile')}
+              style={{
+                padding: "10px 15px",
+                cursor: "pointer",
+                background: activeTab === 'editProfile' ? "#007BFF" : "#f0f0f0",
+                color: activeTab === 'editProfile' ? "#fff" : "#000",
+                border: "none",
+                borderRadius: "5px"
+              }}>
+              ✏️ Edit Profile
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div style={{ marginTop: "20px", textAlign: "left" }}>
+            {activeTab === "achievements" && (
+              <div>
+                <h3>Achievements</h3>
+                <ul>
+                  {userProfile.achievements.map((achievement, index) => (
+                    <li key={index}>✅ {achievement}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {activeTab === "editProfile" && (
+              <div>
+                <h3>Edit Profile</h3>
+                <form>
+                  <label>
+                    Name: <br />
+                    <input type="text" defaultValue={userProfile.name} style={{ width: "100%", padding: "8px" }} />
+                  </label>
+                  <br /><br />
+                  <label>
+                    Email: <br />
+                    <input type="email" defaultValue={userProfile.email} style={{ width: "100%", padding: "8px" }} />
+                  </label>
+                  <br /><br />
+                  <label>
+                    Bio: <br />
+                    <textarea defaultValue={userProfile.bio} style={{ width: "100%", padding: "8px" }} />
+                  </label>
+                  <br /><br />
+                  <button 
+                    type="submit" 
+                    style={{
+                      padding: "10px 15px",
+                      background: "#007BFF",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "5px",
+                      cursor: "pointer"
+                    }}>
+                    Save Changes
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -47,4 +114,4 @@ console.log(error)
   );
 };
 
-export default Profile;
+export default ProfilePage;
