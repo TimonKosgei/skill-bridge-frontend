@@ -34,11 +34,6 @@ const Header = () => {
               </Link>
             </li>
             <li>
-              <Link to="/courses" className="hover:underline">
-                Courses
-              </Link>
-            </li>
-            <li>
               <Link to="/my-courses" className="hover:underline">
                 My Courses
               </Link>
