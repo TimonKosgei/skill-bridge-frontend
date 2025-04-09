@@ -4,11 +4,13 @@ import Header from "../components/Header";
 
 const Signup = () => {
   const navigate = useNavigate();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [first_name, setFirstName] = useState('');
+  const [last_name, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+  const [role, setRole] = useState('Learner'); // Default role
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -22,11 +24,12 @@ const Signup = () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          firstName,
-          lastName,
+          first_name,
+          last_name,
           username,
           email,
-          password
+          password,
+          role
         })
       });
       if (!response.ok) {
@@ -34,11 +37,7 @@ const Signup = () => {
         setError(errorData.error || "Signup failed");
         throw new Error(errorData.error || "Signup failed");
       }
-      if (response.ok) {
-        navigate("/home");
-      } else {
-        console.error("Signup failed");
-      }
+      navigate("/login");
     } catch (error) {
       console.error("Error:", error);
     }
@@ -58,7 +57,7 @@ const Signup = () => {
                 type="text"
                 className="w-full px-3 py-2 border rounded"
                 placeholder="Enter your first name"
-                value={firstName}
+                value={first_name}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
               />
@@ -69,7 +68,7 @@ const Signup = () => {
                 type="text"
                 className="w-full px-3 py-2 border rounded"
                 placeholder="Enter your last name"
-                value={lastName}
+                value={last_name}
                 onChange={(e) => setLastName(e.target.value)}
                 required
               />
@@ -98,14 +97,34 @@ const Signup = () => {
             </div>
             <div className="mb-6">
               <label className="block text-gray-700">Password</label>
-              <input
-                type="password"
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full px-3 py-2 border rounded"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-600"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+            <div className="mb-6">
+              <label className="block text-gray-700">Role</label>
+              <select
                 className="w-full px-3 py-2 border rounded"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                <option value="Instructor">Instructor</option>
+                <option value="Learner">Learner</option>
+              </select>
             </div>
             <button
               type="submit"

@@ -1,16 +1,63 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect, use } from 'react';
 import Header from '../components/Header';
 import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom';
+import {jwtDecode} from 'jwt-decode';
+
+
 
 const CourseDetail = () => {
+  const video = useRef(null); 
+  const handleProgress = (progress) => {
+    const { playedSeconds } = progress; // Get the current played seconds
+    fetch("http://localhost:5000/progress", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: user.user_id,
+        lesson_id: currentLesson.lesson_id,
+        watched_duration: playedSeconds,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      }
+    )
+    console.log("Current played seconds:", playedSeconds);
+  }
+  // Helper function to format duration (seconds) into MM:SS
+  const formatDuration = (seconds) => {
+    if (!seconds) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  let user_id = null
+  let username = null
+  const token = localStorage.getItem("token");
+  if (token) {
+    try {
+      const decodedToken = jwtDecode(token);
+      console.log(decodedToken);
+      user_id = decodedToken.user_id;
+      username = decodedToken.username;
+    } catch (error) {
+      console.error("Invalid token:", error);
+      localStorage.removeItem("token");
+    }
+  } else {
+    console.log("No token found");
+  }
   const {course_id} = useParams();
   const [course, setCourse] = useState({});
   const [lessons, setLessons] = useState([]);
   const [currentLesson, setCurrentLesson] = useState(null);
   const [instructor, setInstructor] = useState({});
   const [reviews, setReviews] = useState([]);  
-  const [user, setUser] = useState({ user_id: 1, first_name: "Timon", last_name: "Kosgei" });
+  const [user, setUser] = useState({ user_id: user_id, username: username });
   const [discussions, setDiscussions] = useState([]);
   const [comments, setComments] = useState([]); // State to store comments
   const [newDiscussion, setNewDiscussion] = useState({ title: "", content: "" });
@@ -55,7 +102,10 @@ const CourseDetail = () => {
 
   useEffect(() => {
     // Fetch all discussions
-    fetch("http://localhost:5000/discussions")
+    fetch(`http://localhost:5000/discussions?course_id=${course_id}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -88,44 +138,93 @@ const CourseDetail = () => {
   const completedLessons = 2;
   const totalLessons = 4;
 
+  const updateLessonProgress = async (watchedDuration) => {
+    if (!user.user_id || !currentLesson?.lesson_id) {
+      console.error("User ID or Lesson ID is missing.");
+      return;
+    }
+
+    const progressData = {
+      user_id: user.user_id,
+      lesson_id: currentLesson.lesson_id,
+      watched_duration: watchedDuration,
+    };
+
+    try {
+      const response = await fetch("http://localhost:5000/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(progressData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const updatedProgress = await response.json();
+      console.log("Lesson progress updated:", updatedProgress);
+    } catch (error) {
+      console.error("Error updating lesson progress:", error);
+    }
+  };
+
   return (
     <>
       <Header />
       <div style={{ display: "flex", justifyContent: "center", gap: "20px", padding: "20px" }}>
-        {/* Sidebar */}
-          <div style={{ width: "250px", padding: "15px", background: "#f4f4f4", borderRadius: "5px" }}>
-            <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#333" }}>Course Progress</h3>
-            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-              {[...Array(totalLessons)].map((_, index) => (
-                <div
-            key={index}
-            style={{
-              width: "20px",
-              height: "20px",
-              borderRadius: "50%",
-              background: index < completedLessons ? "#007BFF" : "#ddd"
-            }}
-                />
-              ))}
-            </div>
-            <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#333", marginTop: "15px" }}>Lessons</h3>
-            <ol>
-                {lessons.map((lesson, index) => (
-                  <li 
-                    key={index} 
-                    onClick={() => setCurrentLesson(lesson)}
-                    style={{ cursor: "pointer", color: "#007BFF", textDecoration: "underline" }}
-                  >
-                    {index + 1}. {lesson.title}
-                  </li>
-                ))}
-            </ol>
-
+      { /* Sidebar */}
+        <div style={{ width: "250px", padding: "15px", background: "#f4f4f4", borderRadius: "5px" }}>
+          <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#333" }}>Course Progress</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            {[...Array(totalLessons)].map((_, index) => (
+              <div
+          key={index}
+          style={{
+            width: "20px",
+            height: "20px",
+            borderRadius: "50%",
+            background: index < completedLessons ? "#007BFF" : "#ddd"
+          }}
+              />
+            ))}
           </div>
-          
-          {/* Main Content */}
+          <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#333", marginTop: "15px" }}>Lessons</h3>
+          <ol style={{ listStyle: "none", padding: 0 }}>
+            {lessons.map((lesson, index) => (
+              <li
+          key={index}
+          onClick={() => setCurrentLesson(lesson)}
+          style={{
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            padding: "5px 0",
+            color: "#007BFF",
+            border: "1px solid transparent",
+            borderRadius: "5px",
+            transition: "border 0.3s ease"
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.border = "1px solid #007BFF")}
+          onMouseLeave={(e) => (e.currentTarget.style.border = "1px solid transparent")}
+              >
+          <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {`${index + 1}. ${lesson.title}`}
+          </span>
+          <span style={{ marginLeft: "10px", color: "#555" }}>{formatDuration(lesson.duration)}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+        {/* Main Content */}
         <div style={{ maxWidth: "900px", width: "100%" }}>
-          <ReactPlayer url={currentLesson?.video_url || "Video"}  width="100%" height="450px" controls />
+          <ReactPlayer 
+            ref={video}
+            onProgress={handleProgress}
+            url={currentLesson?.video_url || "Video"}  
+            width="100%" 
+            height="450px" 
+            controls 
+          />
           
           <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
             {['lesson', 'teacher', 'reviews', 'discussions'].map((tab) => (

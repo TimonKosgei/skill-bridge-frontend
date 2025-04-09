@@ -6,6 +6,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -16,19 +17,22 @@ const LoginPage = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email:email, password:password }),
+        body: JSON.stringify({ email: email, password: password }),
       });
 
-      // Fetch does not throw an error for HTTP error statuses, so check response.ok
       if (!response.ok) {
-        const errorData  = await response.json();
+        const errorData = await response.json();
         throw new Error(errorData.error || 'Login failed');
       }
 
       const data = await response.json();
       console.log('Login successful:', data);
+
+      // Save the JWT token to localStorage
+      localStorage.setItem('token', data.token);
+
       // Redirect to the dashboard or another protected route
-      navigate('/home')
+      navigate('/home');
     } catch (err) {
       console.error('Login error:', err);
       setError('Login failed. Please check your credentials.');
@@ -54,13 +58,22 @@ const LoginPage = () => {
           </div>
           <div className="mb-4">
             <label className="block text-gray-700">Password:</label>
-            <input 
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
-              className="w-full px-3 py-2 border rounded"
-            />
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required 
+                className="w-full px-3 py-2 border rounded"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-3 flex items-center text-gray-600"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
           <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Login</button>
         </form>
