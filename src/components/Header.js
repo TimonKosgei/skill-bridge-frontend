@@ -88,20 +88,6 @@ const Header = () => {
                 Home
               </Link>
             </li>
-            <li>
-              <Link to="/my-courses" style={{
-                textDecoration: "none",
-                color: "#4A5568",
-                fontWeight: "600",
-                fontSize: "15px",
-                transition: "color 0.2s",
-                ":hover": {
-                  color: "#007BFF"
-                }
-              }}>
-                My Courses
-              </Link>
-            </li>
             {isLoggedIn && (
               <li>
                 <Link to="/upload-course" style={{

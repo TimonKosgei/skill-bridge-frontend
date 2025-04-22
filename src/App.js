@@ -9,6 +9,7 @@ import UploadCourse from './pages/UploadCourse';
 import FileUpload from './pages/test';
 import TeacherDashboard from "./pages/TeacherDashboard";
 import CoursePreview from "./pages/CoursePreview";
+import LeaderboardPage from './pages/LeaderboardPage';
 
 const App = () => {
   
@@ -26,6 +27,8 @@ const App = () => {
         <Route path="/file-upload" element={<FileUpload />} />
         <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
         <Route path="/preview/:course_id" element={<CoursePreview />} />
+        
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
       </Routes>
     </Router>
   );

@@ -179,14 +179,14 @@ const TeacherDashboard = () => {
   return (
     <>
       <Header />
-      <div className="p-6">
+      <div className="p-6 max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Teacher Dashboard</h1>
 
         {/* Course Selection */}
         <div className="mb-6">
           <label className="block mb-2 font-medium">Select Course:</label>
           <select
-            className="p-2 border rounded w-full md:w-1/3"
+            className="p-2 border border-gray-300 rounded-lg w-full md:w-1/3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             value={selectedCourse?.course_id || ''}
             onChange={(e) => {
               const courseId = Number(e.target.value);
@@ -207,37 +207,39 @@ const TeacherDashboard = () => {
             {/* Students Progress Section */}
             <div className="lg:col-span-2">
               <h2 className="text-xl font-semibold mb-4">Enrolled Students</h2>
-              <div className="bg-white rounded-lg shadow p-4">
+              <div className="bg-white rounded-lg shadow-md p-4">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3">Student</th>
-                        <th className="text-left p-3">Enrollment Date</th>
-                        <th className="text-left p-3">Progress</th>
-                        <th className="text-left p-3">Status</th>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment Date</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="bg-white divide-y divide-gray-200">
                       {enrollments.map((student) => (
-                        <tr key={student.enrollment_id} className="border-b hover:bg-gray-50">
-                          <td className="p-3">
+                        <tr key={student.enrollment_id} className="hover:bg-gray-50">
+                          <td className="px-3 py-4 whitespace-nowrap">
                             {student.user?.first_name} {student.user?.last_name}
                           </td>
-                          <td className="p-3">
+                          <td className="px-3 py-4 whitespace-nowrap">
                             {new Date(student.enrollment_date).toLocaleDateString()}
                           </td>
-                          <td className="p-3">
-                            {formatProgress(student.progress)}
-                            <span className="ml-2">{student.progress}%</span>
+                          <td className="px-3 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              {formatProgress(student.progress)}
+                              <span className="ml-2 text-sm text-gray-500">{student.progress}%</span>
+                            </div>
                           </td>
-                          <td className="p-3">
+                          <td className="px-3 py-4 whitespace-nowrap">
                             {student.is_completed ? (
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                              <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                 Completed
                               </span>
                             ) : (
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                              <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                                 In Progress
                               </span>
                             )}
@@ -253,30 +255,30 @@ const TeacherDashboard = () => {
             {/* Lessons Section with Reviews */}
             <div className="lg:col-span-3">
               <h2 className="text-xl font-semibold mb-4">Lessons</h2>
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {selectedCourse.lessons?.length > 0 ? (
                   selectedCourse.lessons.map((lesson) => (
-                    <div key={lesson.lesson_id} className="bg-white rounded-lg shadow p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
+                    <div key={lesson.lesson_id} className="bg-white rounded-lg shadow-md p-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                        <div className="flex-1">
                           <h3 className="font-medium text-lg">{lesson.title}</h3>
-                          <p className="text-gray-600 text-sm">{lesson.description}</p>
+                          <p className="text-gray-600 text-sm mt-1">{lesson.description}</p>
                           <p className="text-blue-500 text-sm mt-2">
-                            <a href={lesson.video_url} target="_blank" rel="noopener noreferrer">
+                            <a href={lesson.video_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
                               View Video
                             </a>
                           </p>
                         </div>
                         <button
                           onClick={() => handleEditLesson(lesson)}
-                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
                         >
                           Edit Video
                         </button>
                       </div>
 
                       {/* Reviews for this lesson */}
-                      <div className="mt-4">
+                      <div className="mt-4 pt-4 border-t border-gray-200">
                         <h4 className="font-medium mb-2">Student Reviews</h4>
                         {lesson.lesson_reviews?.length > 0 ? (
                           <div className="space-y-3">
@@ -307,31 +309,36 @@ const TeacherDashboard = () => {
               </div>
             </div>
 
-            {/* Edit Lesson Section */}
+            {/* Edit Lesson Modal */}
             {editingLesson && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
                   <h2 className="text-xl font-semibold mb-4">Edit Lesson</h2>
                   <h3 className="font-medium mb-2">{editingLesson.title}</h3>
-                  <label className="block mb-2">
-                    <span className="text-gray-700">Upload New Video</span>
+                  <label className="block mb-4">
+                    <span className="block text-gray-700 mb-2">Upload New Video</span>
                     <input 
                       type="file" 
                       accept="video/*" 
                       onChange={handleVideoChange} 
-                      className="mt-1 p-2 w-full border rounded" 
+                      className="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-lg file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
                     />
                   </label>
-                  <div className="flex justify-end space-x-2 mt-4">
+                  <div className="flex justify-end space-x-3 mt-6">
                     <button
                       onClick={() => setEditingLesson(null)}
-                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveLesson}
-                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                     >
                       Save Changes
                     </button>
@@ -343,14 +350,14 @@ const TeacherDashboard = () => {
             {/* Discussions Section */}
             <div className="lg:col-span-3">
               <h2 className="text-xl font-semibold mb-4">Course Discussions</h2>
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="space-y-4">
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <div className="space-y-4 divide-y divide-gray-200">
                   {discussions.length > 0 ? (
                     discussions.map((discussion) => (
-                      <div key={discussion.discussion_id} className="border-b pb-4">
+                      <div key={discussion.discussion_id} className="pt-4 first:pt-0">
                         <h3 className="font-medium">{discussion.title}</h3>
-                        <p className="text-gray-600 text-sm">{discussion.content}</p>
-                        <p className="text-gray-500 text-xs mt-1">
+                        <p className="text-gray-600 text-sm mt-1">{discussion.content}</p>
+                        <p className="text-gray-500 text-xs mt-2">
                           Posted by {discussion.user_username} on{' '}
                           {new Date(discussion.discussion_date).toLocaleDateString()}
                         </p>
@@ -361,25 +368,25 @@ const TeacherDashboard = () => {
                   )}
                 </div>
 
-                <div className="mt-6">
-                  <h3 className="font-medium mb-2">Start New Discussion</h3>
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="font-medium mb-3">Start New Discussion</h3>
                   <input
                     type="text"
                     placeholder="Title"
-                    className="w-full p-2 border rounded mb-2"
+                    className="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     value={newDiscussion.title}
                     onChange={(e) => setNewDiscussion({ ...newDiscussion, title: e.target.value })}
                   />
                   <textarea
                     placeholder="Content"
-                    className="w-full p-2 border rounded mb-2"
+                    className="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
                     value={newDiscussion.content}
                     onChange={(e) => setNewDiscussion({ ...newDiscussion, content: e.target.value })}
                   />
                   <button
                     onClick={handleStartDiscussion}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Post Discussion
                   </button>
