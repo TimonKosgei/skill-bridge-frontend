@@ -1,13 +1,12 @@
-import { useRef, useState, useEffect, use } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Header from '../components/Header';
 import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom';
-import {jwtDecode} from 'jwt-decode';
-
-
+import { jwtDecode } from 'jwt-decode';
 
 const CourseDetail = () => {
-  const video = useRef(null); 
+  const video = useRef(null);
+
   const handleProgress = (progress) => {
     const { playedSeconds } = progress; // Get the current played seconds
     fetch("http://localhost:5000/progress", {
@@ -24,10 +23,10 @@ const CourseDetail = () => {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return response.json();
-      }
-    )
-    console.log("Current played seconds:", playedSeconds);
-  }
+      })
+      .catch((error) => console.error("Error updating progress:", error));
+  };
+
   // Helper function to format duration (seconds) into MM:SS
   const formatDuration = (seconds) => {
     if (!seconds) return '0:00';
@@ -35,50 +34,52 @@ const CourseDetail = () => {
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-  let user_id = null
-  let username = null
+
+  let user_id = null;
+  let username = null;
   const token = localStorage.getItem("token");
   if (token) {
     try {
       const decodedToken = jwtDecode(token);
-      console.log(decodedToken);
       user_id = decodedToken.user_id;
       username = decodedToken.username;
     } catch (error) {
       console.error("Invalid token:", error);
       localStorage.removeItem("token");
     }
-  } else {
-    console.log("No token found");
   }
-  const {course_id} = useParams();
+
+  const { course_id } = useParams();
   const [course, setCourse] = useState({});
   const [lessons, setLessons] = useState([]);
   const [currentLesson, setCurrentLesson] = useState(null);
   const [instructor, setInstructor] = useState({});
-  const [reviews, setReviews] = useState([]);  
+  const [reviews, setReviews] = useState([]);
   const [user, setUser] = useState({ user_id: user_id, username: username });
   const [discussions, setDiscussions] = useState([]);
-  const [comments, setComments] = useState([]); // State to store comments
+  const [comments, setComments] = useState([]);
   const [newDiscussion, setNewDiscussion] = useState({ title: "", content: "" });
-  const [newComment, setNewComment] = useState({ discussion_id: null, content: "" }); // State for new comment
+  const [newComment, setNewComment] = useState({ discussion_id: null, content: "" });
+  const totalLessons = lessons.length;
+  const [enrollmentDetails, setEnrollmentDetails] = useState(null);
+  const [enrolled, setEnrolled] = useState(false); // Add this line
 
   useEffect(() => {
     if (currentLesson) {
       fetch(`http://localhost:5000/lessons/${currentLesson.lesson_id}`)
-        .then(response => {
+        .then((response) => {
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
           }
           return response.json();
         })
-        .then(data => {
+        .then((data) => {
           setReviews(data.lesson_reviews);
         })
-        .catch(error => console.error("Fetch error:", error)); // Handle errors
+        .catch((error) => console.error("Fetch error:", error)); // Handle errors
     }
-  }, [currentLesson, setReviews]);
-  
+  }, [currentLesson]);
+
   useEffect(() => {
     if (lessons.length > 0) {
       setCurrentLesson(lessons[0]);
@@ -87,18 +88,19 @@ const CourseDetail = () => {
 
   useEffect(() => {
     fetch(`http://127.0.0.1:5000/courses/${course_id}`)
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
           throw new Error(`Http error! Status: ${response.status}`);
         }
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         setCourse(data);
         setLessons(data.lessons);
         setInstructor(data.instructor);
       })
-  }, []);
+      .catch((error) => console.error("Error fetching course data:", error));
+  }, [course_id]);
 
   useEffect(() => {
     // Fetch all discussions
@@ -129,14 +131,60 @@ const CourseDetail = () => {
         setComments(data); // Assume API returns a list of comments
       })
       .catch((error) => console.error("Error fetching comments:", error));
-  }, []);
+  }, [course_id]);
+
+  useEffect(() => {
+    const fetchEnrollmentStatus = async () => {
+      try {
+        const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+        const decodedToken = jwtDecode(token);
+        const user_id = decodedToken.user_id; // Extract user_id from the decoded token
+
+        const response = await fetch(`http://127.0.0.1:5000/users/${user_id}`);
+        if (response.ok) {
+          const user = await response.json();
+          const enrollment = user.enrollments.find((e) => e.course.course_id == course_id);
+          if (enrollment) {
+            setEnrolled(true);
+            setEnrollmentDetails(enrollment);
+            console.log('Enrollment details:', enrollment);
+          } else {
+            setEnrolled(false);
+          }
+        } else {
+          console.error('Failed to fetch user data:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching enrollment status:', error);
+      }
+    };
+
+    fetchEnrollmentStatus();
+  }, [course_id]);
 
   const [activeTab, setActiveTab] = useState('lesson');
   
   const [newReview, setNewReview] = useState({ comment: "", rating: 0 });
 
-  const completedLessons = 2;
-  const totalLessons = 4;
+  const handleDeleteReview = async (reviewId) => {
+    try {
+      const response = await fetch("http://localhost:5000/lessonreviews", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ review_id: reviewId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      // Remove the deleted review from the state
+      setReviews(reviews.filter((review) => review.review_id !== reviewId));
+    } catch (error) {
+      console.error("Error deleting review:", error);
+      alert("Failed to delete review. Please try again.");
+    }
+  };
 
   const updateLessonProgress = async (watchedDuration) => {
     if (!user.user_id || !currentLesson?.lesson_id) {
@@ -175,42 +223,54 @@ const CourseDetail = () => {
       { /* Sidebar */}
         <div style={{ width: "250px", padding: "15px", background: "#f4f4f4", borderRadius: "5px" }}>
           <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#333" }}>Course Progress</h3>
-          <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-            {[...Array(totalLessons)].map((_, index) => (
-              <div
-          key={index}
-          style={{
-            width: "20px",
-            height: "20px",
-            borderRadius: "50%",
-            background: index < completedLessons ? "#007BFF" : "#ddd"
-          }}
-              />
-            ))}
+          
+          <div style={{ marginBottom: "20px", backgroundColor: "#EDF2F7", borderRadius: "8px", overflow: "hidden" }}>
+            {enrollmentDetails && (
+              <>
+                <div
+                  style={{
+                    width: `${enrollmentDetails.progress}%`,
+                    height: "6px",
+                    backgroundColor: "#007BFF",
+                    borderRadius: "8px",
+                  }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px" }}>
+                  <span style={{ fontSize: "12px", color: "#4A5568" }}>
+                    {enrollmentDetails.progress}% Complete
+                  </span>
+                </div>
+              </>
+            )}
           </div>
           <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#333", marginTop: "15px" }}>Lessons</h3>
           <ol style={{ listStyle: "none", padding: 0 }}>
             {lessons.map((lesson, index) => (
               <li
-          key={index}
-          onClick={() => setCurrentLesson(lesson)}
-          style={{
-            cursor: "pointer",
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "5px 0",
-            color: "#007BFF",
-            border: "1px solid transparent",
-            borderRadius: "5px",
-            transition: "border 0.3s ease"
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.border = "1px solid #007BFF")}
-          onMouseLeave={(e) => (e.currentTarget.style.border = "1px solid transparent")}
+                key={index}
+                onClick={() => setCurrentLesson(lesson)} // Set the clicked lesson as the current lesson
+                style={{
+                  cursor: "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "10px",
+                  color: lesson.completed ? "#007BFF" : "#555",
+                  backgroundColor: currentLesson?.lesson_id === lesson.lesson_id ? "#E3F2FD" : "transparent", // Highlight current lesson
+                  border: currentLesson?.lesson_id === lesson.lesson_id ? "1px solid #007BFF" : "1px solid transparent", // Add border for current lesson
+                  borderRadius: "5px",
+                  transition: "background-color 0.3s ease, border 0.3s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.border = "1px solid #007BFF")}
+                onMouseLeave={(e) => {
+                  if (currentLesson?.lesson_id !== lesson.lesson_id) {
+                    e.currentTarget.style.border = "1px solid transparent";
+                  }
+                }}
               >
-          <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {`${index + 1}. ${lesson.title}`}
-          </span>
-          <span style={{ marginLeft: "10px", color: "#555" }}>{formatDuration(lesson.duration)}</span>
+                <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {`${index + 1}. ${lesson.title}`}
+                </span>
+                <span style={{ marginLeft: "10px", color: "#555" }}>{formatDuration(lesson.duration)}</span>
               </li>
             ))}
           </ol>
@@ -263,6 +323,20 @@ const CourseDetail = () => {
                       <span style={{ color: "#FFD700" }}>
                         {"★".repeat(review.rating) + "☆".repeat(5 - review.rating)}
                       </span>
+                      <button
+                        onClick={() => handleDeleteReview(review.review_id)}
+                        style={{
+                          marginLeft: "10px",
+                          padding: "5px 10px",
+                          backgroundColor: "#FF4D4D",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Delete
+                      </button>
                     </li>
                   ))}
                 </ul>

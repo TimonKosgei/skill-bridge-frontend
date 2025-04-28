@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import { jwtDecode } from 'jwt-decode';
+import SimpleCourseCard from '../components/SimpleCourseCard'; // Import the new card component
 
 const ProfilePage = () => {
   const [decodedToken, setDecodedToken] = useState(null);
-  const [activeTab, setActiveTab] = useState('badges');
+  const [activeTab, setActiveTab] = useState('courses'); // Default to courses tab
   const [badges, setBadges] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newBadge, setNewBadge] = useState(null);
   const [user, setUser] = useState({});
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -36,23 +38,28 @@ const ProfilePage = () => {
   useEffect(() => {
     if (!decodedToken) return;
 
-    const fetchUserAndBadges = async () => {
+    const fetchUserData = async () => {
       try {
         // Fetch user data
         const userResponse = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}`);
-        if (!userResponse.ok) {
-          throw new Error('Failed to fetch user data');
-        }
+        if (!userResponse.ok) throw new Error('Failed to fetch user data');
         const userData = await userResponse.json();
         setUser(userData);
 
         // Fetch badges
         const badgesResponse = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}/badges`);
-        if (!badgesResponse.ok) {
-          throw new Error('Failed to fetch badges');
-        }
+        if (!badgesResponse.ok) throw new Error('Failed to fetch badges');
         const badgesData = await badgesResponse.json();
         setBadges(badgesData);
+
+        // Populate enrolled courses from user.enrollments
+        if (userData.enrollments) {
+          const courses = userData.enrollments.map(enrollment => ({
+            ...enrollment.course,
+            progress: enrollment.progress,
+          }));
+          setEnrolledCourses(courses);
+        }
 
         if (badgesData.length > 0) {
           const newestBadge = badgesData[badgesData.length - 1];
@@ -68,10 +75,15 @@ const ProfilePage = () => {
       }
     };
 
-    fetchUserAndBadges();
-    const interval = setInterval(fetchUserAndBadges, 30000);
+    fetchUserData();
+    const interval = setInterval(fetchUserData, 30000);
     return () => clearInterval(interval);
-  }, [decodedToken]); 
+  }, [decodedToken]);
+
+  // Group enrolled courses by completion status
+  const completedCourses = enrolledCourses.filter(course => course.progress === 100);
+  const inProgressCourses = enrolledCourses.filter(course => course.progress > 0 && course.progress < 100);
+  const notStartedCourses = enrolledCourses.filter(course => course.progress === 0);
 
   const getTierColor = (tier) => {
     const colors = {
@@ -123,11 +135,13 @@ const ProfilePage = () => {
             <div className="text-red-500">{error}</div>
           ) : (
             <>
-              <img 
-                src={user.profilePicture} 
-                alt="Profile" 
-                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg mb-4"
-              />
+              <div className="relative">
+                <img
+                  src={user.profile_picture_url || "https://via.placeholder.com/150"}
+                  alt="Profile"
+                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg mb-4"
+                />
+              </div>
               <h2 className="text-2xl font-bold text-gray-800">{user.name}</h2>
               <p className="text-gray-500 mb-2">{user.email}</p>
               <p className="text-gray-600 max-w-md">{user.bio}</p>
@@ -139,6 +153,7 @@ const ProfilePage = () => {
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-md shadow-sm isolate">
             {[
+              { id: 'courses', label: '📚 My Courses' },
               { id: 'badges', label: '🏆 Badges' },
               { id: 'activity', label: '📝 Activity' },
               { id: 'settings', label: '⚙️ Settings' }
@@ -152,7 +167,7 @@ const ProfilePage = () => {
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 } ${
                   index === 0 ? 'rounded-l-lg' : 
-                  index === 2 ? 'rounded-r-lg' : 
+                  index === 3 ? 'rounded-r-lg' : 
                   'rounded-none'
                 }`}
               >
@@ -164,6 +179,57 @@ const ProfilePage = () => {
 
         {/* Tab Content */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          {activeTab === 'courses' && (
+            <div className="p-6">
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : error ? (
+                <div className="text-center py-8 text-red-500">
+                  Error loading courses: {error}
+                </div>
+              ) : enrolledCourses.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="mx-auto h-16 w-16 text-gray-400 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-medium text-gray-900">No courses yet</h4>
+                  <p className="text-gray-500 mt-1">Enroll in courses to get started!</p>
+                </div>
+              ) : (
+                <>
+                  {/* In Progress and Not Started Courses */}
+                  {(inProgressCourses.length > 0 || notStartedCourses.length > 0) && (
+                    <div className="mb-8">
+                      <h3 className="text-xl font-semibold text-gray-800 mb-4">In Progress / Not Started</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[...inProgressCourses, ...notStartedCourses].map(course => (
+                          <SimpleCourseCard key={course.id} course={course} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Completed Courses */}
+                  {completedCourses.length > 0 && (
+                    <div className="mb-8">
+                      <h3 className="text-xl font-semibold text-gray-800 mb-4">Completed</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {completedCourses.map(course => (
+                          <SimpleCourseCard key={course.id} course={course} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Rest of the tabs (badges, activity, settings) remain the same */}
           {activeTab === 'badges' && (
             <div className="p-6">
               {isLoading ? (
@@ -255,12 +321,66 @@ const ProfilePage = () => {
           {activeTab === 'settings' && (
             <div className="p-6">
               <h3 className="text-xl font-semibold text-gray-800 mb-6">Profile Settings</h3>
-              <form className="space-y-4">
+              <form
+                className="space-y-4"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+
+                  const updatedUser = {
+                    username: e.target[0].value,
+                    first_name: e.target[1].value,
+                    last_name: e.target[2].value,
+                    email: e.target[3].value,
+                    bio: e.target[4].value,
+                  };
+
+                  const token = localStorage.getItem('token');
+                  console.log('Authorization Token:', token); // Log the token for debugging
+
+                  try {
+                    const response = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify(updatedUser),
+                    });
+
+                    if (!response.ok) {
+                      throw new Error('Failed to update profile');
+                    }
+
+                    const updatedData = await response.json();
+                    setUser(updatedData); // Update the user state with the new data
+                    alert('Profile updated successfully!');
+                  } catch (error) {
+                    console.error('Error updating profile:', error);
+                    alert('Failed to update profile. Please try again.');
+                  }
+                }}
+              >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
                   <input
                     type="text"
-                    defaultValue={user.name}
+                    defaultValue={user.username}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                  <input
+                    type="text"
+                    defaultValue={user.first_name}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    defaultValue={user.last_name}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>

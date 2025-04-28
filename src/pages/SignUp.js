@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Header from "../components/Header";
 
 const Signup = () => {
@@ -9,8 +9,8 @@ const Signup = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
-  const [role, setRole] = useState('Learner'); // Default role
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState('Learner');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -44,63 +44,87 @@ const Signup = () => {
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="bg-white p-6 rounded shadow-md w-full max-w-sm">
-          <h1 className="text-2xl font-bold mb-4">Sign Up</h1>
-          {error && <p className="text-red-500 mb-4">{error}</p>}
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-gray-700">First Name</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border rounded"
-                placeholder="Enter your first name"
-                value={first_name}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-              />
+      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Create your account</h1>
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 text-red-600 rounded-md">
+              {error}
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">Last Name</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border rounded"
-                placeholder="Enter your last name"
-                value={last_name}
-                onChange={(e) => setLastName(e.target.value)}
-                required
-              />
+          )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
+                  First name
+                </label>
+                <input
+                  type="text"
+                  id="first_name"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter your first name"
+                  value={first_name}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
+                  Last name
+                </label>
+                <input
+                  type="text"
+                  id="last_name"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter your last name"
+                  value={last_name}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">Username</label>
+
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                Username
+              </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 border rounded"
+                id="username"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">Email</label>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
               <input
                 type="email"
-                className="w-full px-3 py-2 border rounded"
+                id="email"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
-            <div className="mb-6">
-              <label className="block text-gray-700">Password</label>
-              <div className="relative">
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
                 <input
+                  id="password"
                   type={showPassword ? "text" : "password"}
-                  className="w-full px-3 py-2 border rounded"
+                  className="block w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -109,39 +133,49 @@ const Signup = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-blue-600 hover:text-blue-800"
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
             </div>
-            <div className="mb-6">
-              <label className="block text-gray-700">Role</label>
+
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                I want to join as a
+              </label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                id="role"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
               >
-                <option value="Instructor">Instructor</option>
                 <option value="Learner">Learner</option>
+                <option value="Instructor">Instructor</option>
               </select>
             </div>
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
-            >
-              Sign Up
-            </button>
+
+            <div>
+              <button
+                type="submit"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Sign up
+              </button>
+            </div>
           </form>
-          <p className="mt-4 text-center">
-            Already have an account?{" "}
-            <a href="/login" className="text-blue-500 hover:underline">
-              Login
-            </a>
-          </p>
+
+          <div className="mt-6 text-center text-sm">
+            <p className="text-gray-600">
+              Already have an account?{" "}
+              <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                Log in
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
