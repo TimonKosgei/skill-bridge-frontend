@@ -10,6 +10,9 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import CoursePreview from "./pages/CoursePreview";
 import LeaderboardPage from './pages/LeaderboardPage';
 import LandingPage from './pages/LandingPage';
+import ConfirmEmail from "./pages/ConfirmEmail";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const App = () => {
   return (
@@ -25,6 +28,9 @@ const App = () => {
         <Route path="/upload-course" element={<UploadCourse />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/preview/:course_id" element={<CoursePreview />} />
+        <Route path="/confirm/:token" element={<ConfirmEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
     </Router>
   );

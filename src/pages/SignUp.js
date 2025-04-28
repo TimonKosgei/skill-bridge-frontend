@@ -12,10 +12,12 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('Learner');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // Add loading state
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true); // Set loading to true
 
     try {
       const response = await fetch("http://127.0.0.1:5000/signup", {
@@ -37,11 +39,15 @@ const Signup = () => {
         setError(errorData.error || "Signup failed");
         throw new Error(errorData.error || "Signup failed");
       }
+      // Show success message
+      alert("Signup successful! Please check your email to confirm your account.");
       navigate("/login");
     } catch (error) {
       console.error("Error:", error);
+    } finally {
+      setLoading(false); // Reset loading state
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -158,9 +164,12 @@ const Signup = () => {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+                disabled={loading} // Disable the button when loading
               >
-                Sign up
+                {loading ? 'Processing...' : 'Sign up'}
               </button>
             </div>
           </form>

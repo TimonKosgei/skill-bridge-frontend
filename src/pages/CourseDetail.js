@@ -323,20 +323,22 @@ const CourseDetail = () => {
                       <span style={{ color: "#FFD700" }}>
                         {"★".repeat(review.rating) + "☆".repeat(5 - review.rating)}
                       </span>
-                      <button
-                        onClick={() => handleDeleteReview(review.review_id)}
-                        style={{
-                          marginLeft: "10px",
-                          padding: "5px 10px",
-                          backgroundColor: "#FF4D4D",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "5px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Delete
-                      </button>
+                      {review.user_id === user.user_id && ( // Show the button only if the user owns the review
+                        <button
+                          onClick={() => handleDeleteReview(review.review_id)}
+                          style={{
+                            marginLeft: "10px",
+                            padding: "5px 10px",
+                            backgroundColor: "#FF4D4D",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "5px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -436,6 +438,40 @@ const CourseDetail = () => {
                             .map((comment, commentIndex) => (
                               <li key={commentIndex} style={{ marginBottom: "5px" }}>
                                 <strong>{comment.user_username}:</strong> {comment.content}
+                                {comment.user_id === user.user_id && ( // Show the button only if the user owns the comment
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const response = await fetch("http://localhost:5000/comments", {
+                                          method: "DELETE",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ comment_id: comment.comment_id }),
+                                        });
+
+                                        if (!response.ok) {
+                                          throw new Error(`HTTP error! Status: ${response.status}`);
+                                        }
+
+                                        // Remove the deleted comment from the state
+                                        setComments(comments.filter((c) => c.comment_id !== comment.comment_id));
+                                      } catch (error) {
+                                        console.error("Error deleting comment:", error);
+                                        alert("Failed to delete comment. Please try again.");
+                                      }
+                                    }}
+                                    style={{
+                                      marginLeft: "10px",
+                                      padding: "5px 10px",
+                                      backgroundColor: "#FF4D4D",
+                                      color: "#fff",
+                                      border: "none",
+                                      borderRadius: "5px",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
                               </li>
                             ))}
                         </ul>

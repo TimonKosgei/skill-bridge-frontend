@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
-import { jwtDecode } from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -9,26 +9,37 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState(''); // For unconfirmed email messages
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setInfoMessage('');
+
     try {
       const response = await fetch('http://127.0.0.1:5000/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email: email, password: password }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Handle unconfirmed email case
+        if (response.status === 403 && errorData.error.includes('Email not confirmed')) {
+          setInfoMessage(errorData.error); // Display the message for unconfirmed email
+          return;
+        }
+
         throw new Error(errorData.error || 'Login failed');
       }
 
       const data = await response.json();
       localStorage.setItem('token', data.token);
-      
+
       const decodedToken = jwtDecode(data.token);
       if (decodedToken.role === 'Instructor') {
         navigate('/teacher-dashboard');
@@ -49,10 +60,16 @@ const LoginPage = () => {
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-sm hover:shadow-md transition-shadow">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Welcome back</h2>
-          
+
           {error && (
             <div className="mb-6 p-3 bg-red-50 text-red-600 rounded-md">
               {error}
+            </div>
+          )}
+
+          {infoMessage && (
+            <div className="mb-6 p-3 bg-yellow-50 text-yellow-600 rounded-md">
+              {infoMessage}
             </div>
           )}
 
@@ -79,7 +96,7 @@ const LoginPage = () => {
               <div className="mt-1 relative rounded-md shadow-sm">
                 <input
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   className="block w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your password"
                   value={password}
@@ -91,7 +108,7 @@ const LoginPage = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-blue-600 hover:text-blue-800"
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
             </div>
@@ -128,7 +145,7 @@ const LoginPage = () => {
 
           <div className="mt-6 text-center text-sm">
             <p className="text-gray-600">
-              Don't have an account?{" "}
+              Don't have an account?{' '}
               <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
                 Sign up
               </Link>
