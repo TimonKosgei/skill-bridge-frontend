@@ -13,6 +13,7 @@ import LandingPage from './pages/LandingPage';
 import ConfirmEmail from "./pages/ConfirmEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AddLesson from "./pages/AddLesson";
 
 const App = () => {
   return (
@@ -31,6 +32,7 @@ const App = () => {
         <Route path="/confirm/:token" element={<ConfirmEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/courses/:courseId/add-lesson" element={<AddLesson />} />
       </Routes>
     </Router>
   );

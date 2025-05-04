@@ -38,18 +38,15 @@ const Header = () => {
         <div className="flex justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="flex items-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-8 text-blue-600"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm-1-17h2v6h-2zm0 8h2v2h-2z" />
-              </svg>
-              <span className="ml-2 text-xl font-bold text-gray-900">SkillBridge</span>
-            </Link>
-          </div>
+  <Link to="/" className="flex items-center">
+    <img 
+      src="https://skillbridge28.s3.eu-north-1.amazonaws.com/photo_2025-05-02_19-59-20.jpg" 
+      alt="SkillBridge Logo"
+      className="h-8 w-8 rounded-full object-cover"
+    />
+    <span className="ml-2 text-xl font-bold text-gray-900">SkillBridge</span>
+  </Link>
+</div>
 
           {/* Navigation */}
           <div className="flex items-center space-x-4 sm:space-x-8">

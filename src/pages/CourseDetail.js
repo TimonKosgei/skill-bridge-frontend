@@ -3,12 +3,52 @@ import Header from '../components/Header';
 import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import CompletionCelebration from '../components/CompletionCelebration';
 
 const CourseDetail = () => {
   const video = useRef(null);
+  const { course_id } = useParams();
+
+  // User authentication and data
+  const [user, setUser] = useState({ user_id: null, username: null });
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const decodedToken = jwtDecode(token);
+        setUser({ user_id: decodedToken.user_id, username: decodedToken.username });
+      } catch (error) {
+        console.error("Invalid token:", error);
+        localStorage.removeItem("token");
+      }
+    }
+  }, []);
+
+  // Course data
+  const [course, setCourse] = useState({});
+  const [lessons, setLessons] = useState([]);
+  const [currentLesson, setCurrentLesson] = useState(null);
+  const [instructor, setInstructor] = useState({});
+  const [reviews, setReviews] = useState([]);
+  const [discussions, setDiscussions] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [enrollmentDetails, setEnrollmentDetails] = useState(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [activeTab, setActiveTab] = useState('lesson');
+  const [newReview, setNewReview] = useState({ comment: "", rating: 0 });
+  const [newDiscussion, setNewDiscussion] = useState({ title: "", content: "" });
+  const [newComment, setNewComment] = useState({ discussion_id: null, content: "" });
+
+  // Helper functions
+  const formatDuration = (seconds) => {
+    if (!seconds) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleProgress = (progress) => {
-    const { playedSeconds } = progress; // Get the current played seconds
+    const { playedSeconds } = progress;
     fetch("http://localhost:5000/progress", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -17,66 +57,40 @@ const CourseDetail = () => {
         lesson_id: currentLesson.lesson_id,
         watched_duration: playedSeconds,
       }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
+    }).catch((error) => console.error("Error updating progress:", error));
+  };
+
+  // Data fetching
+  useEffect(() => {
+    // Fetch course data
+    fetch(`http://127.0.0.1:5000/courses/${course_id}`)
+      .then(response => response.json())
+      .then(data => {
+        setCourse(data);
+        setLessons(data.lessons);
+        setInstructor(data.instructor);
       })
-      .catch((error) => console.error("Error updating progress:", error));
-  };
+      .catch(error => console.error("Error fetching course data:", error));
 
-  // Helper function to format duration (seconds) into MM:SS
-  const formatDuration = (seconds) => {
-    if (!seconds) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+    // Fetch discussions
+    fetch(`http://localhost:5000/discussions?course_id=${course_id}`)
+      .then(response => response.json())
+      .then(data => setDiscussions(data))
+      .catch(error => console.error("Error fetching discussions:", error));
 
-  let user_id = null;
-  let username = null;
-  const token = localStorage.getItem("token");
-  if (token) {
-    try {
-      const decodedToken = jwtDecode(token);
-      user_id = decodedToken.user_id;
-      username = decodedToken.username;
-    } catch (error) {
-      console.error("Invalid token:", error);
-      localStorage.removeItem("token");
-    }
-  }
-
-  const { course_id } = useParams();
-  const [course, setCourse] = useState({});
-  const [lessons, setLessons] = useState([]);
-  const [currentLesson, setCurrentLesson] = useState(null);
-  const [instructor, setInstructor] = useState({});
-  const [reviews, setReviews] = useState([]);
-  const [user, setUser] = useState({ user_id: user_id, username: username });
-  const [discussions, setDiscussions] = useState([]);
-  const [comments, setComments] = useState([]);
-  const [newDiscussion, setNewDiscussion] = useState({ title: "", content: "" });
-  const [newComment, setNewComment] = useState({ discussion_id: null, content: "" });
-  const totalLessons = lessons.length;
-  const [enrollmentDetails, setEnrollmentDetails] = useState(null);
-  const [enrolled, setEnrolled] = useState(false); // Add this line
+    // Fetch comments
+    fetch("http://localhost:5000/comments")
+      .then(response => response.json())
+      .then(data => setComments(data))
+      .catch(error => console.error("Error fetching comments:", error));
+  }, [course_id]);
 
   useEffect(() => {
     if (currentLesson) {
       fetch(`http://localhost:5000/lessons/${currentLesson.lesson_id}`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then((data) => {
-          setReviews(data.lesson_reviews);
-        })
-        .catch((error) => console.error("Fetch error:", error)); // Handle errors
+        .then(response => response.json())
+        .then(data => setReviews(data.lesson_reviews))
+        .catch(error => console.error("Fetch error:", error));
     }
   }, [currentLesson]);
 
@@ -87,538 +101,468 @@ const CourseDetail = () => {
   }, [lessons]);
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:5000/courses/${course_id}`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Http error! Status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setCourse(data);
-        setLessons(data.lessons);
-        setInstructor(data.instructor);
-      })
-      .catch((error) => console.error("Error fetching course data:", error));
-  }, [course_id]);
-
-  useEffect(() => {
-    // Fetch all discussions
-    fetch(`http://localhost:5000/discussions?course_id=${course_id}`, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setDiscussions(data); // Assume API returns a list of discussions
-      })
-      .catch((error) => console.error("Error fetching discussions:", error));
-
-    // Fetch all comments
-    fetch("http://localhost:5000/comments")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setComments(data); // Assume API returns a list of comments
-      })
-      .catch((error) => console.error("Error fetching comments:", error));
-  }, [course_id]);
-
-  useEffect(() => {
     const fetchEnrollmentStatus = async () => {
       try {
-        const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
         const decodedToken = jwtDecode(token);
-        const user_id = decodedToken.user_id; // Extract user_id from the decoded token
-
-        const response = await fetch(`http://127.0.0.1:5000/users/${user_id}`);
+        const response = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}`);
+        
         if (response.ok) {
-          const user = await response.json();
-          const enrollment = user.enrollments.find((e) => e.course.course_id == course_id);
+          const userData = await response.json();
+          const enrollment = userData.enrollments.find(e => parseInt(e.course.course_id) === parseInt(course_id));
           if (enrollment) {
-            setEnrolled(true);
             setEnrollmentDetails(enrollment);
-            console.log('Enrollment details:', enrollment);
-          } else {
-            setEnrolled(false);
+            if (enrollment.progress === 100 && !enrollment.show_celebration) {
+              setShowCelebration(true);
+              await fetch(`http://localhost:5000/enrollments`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                  show_celebration: true, 
+                  enrollment_id: enrollment.enrollment_id 
+                }),
+              });
+            }
           }
-        } else {
-          console.error('Failed to fetch user data:', response.statusText);
         }
       } catch (error) {
         console.error('Error fetching enrollment status:', error);
       }
     };
 
-    fetchEnrollmentStatus();
+    const intervalId = setInterval(fetchEnrollmentStatus, 5000);
+    return () => clearInterval(intervalId);
   }, [course_id]);
 
-  const [activeTab, setActiveTab] = useState('lesson');
-  
-  const [newReview, setNewReview] = useState({ comment: "", rating: 0 });
-
+  // Event handlers
   const handleDeleteReview = async (reviewId) => {
     try {
-      const response = await fetch("http://localhost:5000/lessonreviews", {
+      await fetch("http://localhost:5000/lessonreviews", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ review_id: reviewId }),
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      // Remove the deleted review from the state
-      setReviews(reviews.filter((review) => review.review_id !== reviewId));
+      setReviews(reviews.filter(review => review.review_id !== reviewId));
     } catch (error) {
       console.error("Error deleting review:", error);
       alert("Failed to delete review. Please try again.");
     }
   };
 
-  const updateLessonProgress = async (watchedDuration) => {
-    if (!user.user_id || !currentLesson?.lesson_id) {
-      console.error("User ID or Lesson ID is missing.");
-      return;
-    }
-
-    const progressData = {
-      user_id: user.user_id,
-      lesson_id: currentLesson.lesson_id,
-      watched_duration: watchedDuration,
-    };
-
-    try {
-      const response = await fetch("http://localhost:5000/progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(progressData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const updatedProgress = await response.json();
-      console.log("Lesson progress updated:", updatedProgress);
-    } catch (error) {
-      console.error("Error updating lesson progress:", error);
-    }
-  };
-
   return (
     <>
       <Header />
-      <div style={{ display: "flex", justifyContent: "center", gap: "20px", padding: "20px" }}>
-      { /* Sidebar */}
-        <div style={{ width: "250px", padding: "15px", background: "#f4f4f4", borderRadius: "5px" }}>
-          <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#333" }}>Course Progress</h3>
-          
-          <div style={{ marginBottom: "20px", backgroundColor: "#EDF2F7", borderRadius: "8px", overflow: "hidden" }}>
+      <div className="min-h-screen bg-gray-50 p-6 max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar */}
+          <div className="w-full lg:w-1/4 bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Course Progress</h3>
+            
             {enrollmentDetails && (
-              <>
-                <div
-                  style={{
-                    width: `${enrollmentDetails.progress}%`,
-                    height: "6px",
-                    backgroundColor: "#007BFF",
-                    borderRadius: "8px",
-                  }}
-                />
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px" }}>
-                  <span style={{ fontSize: "12px", color: "#4A5568" }}>
-                    {enrollmentDetails.progress}% Complete
-                  </span>
+              <div className="mb-6">
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-blue-600 h-2.5 rounded-full" 
+                    style={{ width: `${enrollmentDetails.progress}%` }}
+                  ></div>
                 </div>
-              </>
-            )}
-          </div>
-          <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#333", marginTop: "15px" }}>Lessons</h3>
-          <ol style={{ listStyle: "none", padding: 0 }}>
-            {lessons.map((lesson, index) => (
-              <li
-                key={index}
-                onClick={() => setCurrentLesson(lesson)} // Set the clicked lesson as the current lesson
-                style={{
-                  cursor: "pointer",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "10px",
-                  color: lesson.completed ? "#007BFF" : "#555",
-                  backgroundColor: currentLesson?.lesson_id === lesson.lesson_id ? "#E3F2FD" : "transparent", // Highlight current lesson
-                  border: currentLesson?.lesson_id === lesson.lesson_id ? "1px solid #007BFF" : "1px solid transparent", // Add border for current lesson
-                  borderRadius: "5px",
-                  transition: "background-color 0.3s ease, border 0.3s ease",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.border = "1px solid #007BFF")}
-                onMouseLeave={(e) => {
-                  if (currentLesson?.lesson_id !== lesson.lesson_id) {
-                    e.currentTarget.style.border = "1px solid transparent";
-                  }
-                }}
-              >
-                <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {`${index + 1}. ${lesson.title}`}
-                </span>
-                <span style={{ marginLeft: "10px", color: "#555" }}>{formatDuration(lesson.duration)}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-        {/* Main Content */}
-        <div style={{ maxWidth: "900px", width: "100%" }}>
-          <ReactPlayer 
-            ref={video}
-            onProgress={handleProgress}
-            url={currentLesson?.video_url || "Video"}  
-            width="100%" 
-            height="450px" 
-            controls 
-          />
-          
-          <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
-            {['lesson', 'teacher', 'reviews', 'discussions'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{ padding: "10px 15px", cursor: "pointer", background: activeTab === tab ? "#007BFF" : "#f0f0f0", color: activeTab === tab ? "#fff" : "#000", border: "none", borderRadius: "5px" }}>
-                {tab === "lesson" ? "📖 About the Lesson" : tab === "teacher" ? "👨‍🏫 About the Teacher" : tab === "reviews" ? "⭐ Reviews" : "💬 Discussions"}
-              </button>
-            ))}
-          </div>
-          
-          <div style={{ marginTop: "20px" }}>
-            {activeTab === "lesson" && (
-              <div>
-                <h2 style={{ fontSize: "24px", fontWeight: "bold", color: "#007BFF" }}>{currentLesson?.title || "Loading..."}</h2>
-                <p style={{ fontSize: "16px", color: "#555" }}>{currentLesson?.description || "Loading..."}</p>
-              </div>
-            )}
-            {activeTab === "teacher" && (
-              <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                <img src={instructor.profile_picture_url} alt={instructor.name} style={{ width: "100px", height: "100px", borderRadius: "50%", objectFit: "cover" }} />
-                <div>
-                  <h4 style={{ fontSize: "20px", fontWeight: "bold", color: "#333" }}>Name: {instructor.first_name} {instructor.last_name}</h4>
-                  <p style={{ fontSize: "16px", color: "#555" }}>{instructor.bio}</p>
+                <div className="flex justify-between mt-2 text-sm text-gray-600">
+                  <span>{enrollmentDetails.progress}% Complete</span>
                 </div>
               </div>
             )}
-            {activeTab === "reviews" && (
-              <div>
-                <h3 style={{ fontSize: "20px", fontWeight: "bold", color: "#007BFF" }}>Reviews</h3>
-                <ul>
-                  {reviews.map((review, index) => (
-                    <li key={index} style={{ marginBottom: "10px" }}>
-                      <strong>{review.user_username}:</strong> {review.comment}{" "}
-                      <span style={{ color: "#FFD700" }}>
-                        {"★".repeat(review.rating) + "☆".repeat(5 - review.rating)}
-                      </span>
-                      {review.user_id === user.user_id && ( // Show the button only if the user owns the review
-                        <button
-                          onClick={() => handleDeleteReview(review.review_id)}
-                          style={{
-                            marginLeft: "10px",
-                            padding: "5px 10px",
-                            backgroundColor: "#FF4D4D",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: "5px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
 
-                <div style={{ marginTop: "20px" }}>
-                  <h4 style={{ fontSize: "18px", fontWeight: "bold", color: "#333" }}>Add Your Review</h4>
-                  <textarea
-                    placeholder="Your review"
-                    value={newReview.comment}
-                    onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      padding: "10px",
-                      marginBottom: "10px",
-                      border: "1px solid #ccc",
-                      borderRadius: "5px",
-                    }}
-                  ></textarea>
-                  <div style={{ marginBottom: "10px" }}>
-                    <span style={{ fontSize: "16px", fontWeight: "bold", color: "#333" }}>Rating:</span>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <span
-                        key={star}
-                        onClick={() => setNewReview({ ...newReview, rating: star })}
-                        style={{
-                          cursor: "pointer",
-                          color: newReview.rating >= star ? "#FFD700" : "#ccc",
-                          fontSize: "20px",
-                          marginLeft: "5px",
-                        }}
-                      >
-                        ★
-                      </span>
-                    ))}
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Lessons</h3>
+            <ol className="space-y-2">
+              {lessons.map((lesson, index) => (
+                <li
+                  key={lesson.lesson_id}
+                  onClick={() => setCurrentLesson(lesson)}
+                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                    currentLesson?.lesson_id === lesson.lesson_id 
+                      ? 'bg-blue-100 border border-blue-300' 
+                      : 'hover:bg-gray-100 hover:border hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="truncate font-medium">
+                      {index + 1}. {lesson.title}
+                    </span>
+                    <span className="text-sm text-gray-500 ml-2">
+                      {formatDuration(lesson.duration)}
+                    </span>
                   </div>
-                  <button
-                    onClick={async () => {
-                      if (newReview.comment && newReview.rating) {
-                        const reviewData = {
-                          user_id: user.user_id,
-                          lesson_id: currentLesson.lesson_id,
-                          rating: newReview.rating,
-                          comment: newReview.comment,
-                        };
+                </li>
+              ))}
+            </ol>
+          </div>
 
-                        try {
-                          const response = await fetch("http://localhost:5000/lessonreviews", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(reviewData),
-                          });
+          {/* Main Content */}
+          <div className="w-full lg:w-3/4">
+            {/* Video Player */}
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <ReactPlayer 
+                ref={video}
+                onProgress={handleProgress}
+                url={currentLesson?.video_url}  
+                width="100%"
+                height="450px"
+                controls
+                className="react-player"
+              />
+            </div>
 
-                          if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                          }
+            {/* Tabs */}
+            <div className="flex space-x-2 mt-6">
+              {['lesson', 'teacher', 'reviews', 'discussions'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === tab
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {tab === "lesson" ? "📖 Lesson" : 
+                   tab === "teacher" ? "👨‍🏫 Instructor" : 
+                   tab === "reviews" ? "⭐ Reviews" : "💬 Discussions"}
+                </button>
+              ))}
+            </div>
 
-                          const savedReview = await response.json();
-                          setReviews([...reviews, { ...savedReview, user: user.first_name }]);
-                          setNewReview({ comment: "", rating: 0 });
-                        } catch (error) {
-                          console.error("Error submitting review:", error);
-                          alert("Failed to submit review. Please try again.");
-                        }
-                      } else {
-                        alert("Please fill out all fields and select a rating.");
-                      }
-                    }}
-                    style={{
-                      padding: "10px 20px",
-                      backgroundColor: "#007BFF",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "5px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Submit Review
-                  </button>
+            {/* Tab Content */}
+            <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+              {activeTab === "lesson" && (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    {currentLesson?.title || "Loading..."}
+                  </h2>
+                  <p className="text-gray-600">
+                    {currentLesson?.description || "Loading..."}
+                  </p>
                 </div>
-              </div>
-            )}
-            {activeTab === "discussions" && (
-              <div>
-                <h3 style={{ fontSize: "20px", fontWeight: "bold", color: "#007BFF" }}>Discussions</h3>
-                <ul>
+              )}
+
+              {activeTab === "teacher" && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <img 
+                    src={instructor.profile_picture_url} 
+                    alt={instructor.name} 
+                    className="w-24 h-24 rounded-full object-cover"
+                  />
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900">
+                      {instructor.first_name} {instructor.last_name}
+                    </h4>
+                    <p className="text-gray-600 mt-1">{instructor.bio}</p>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "reviews" && (
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Reviews</h3>
+                  
+                  {reviews.length > 0 ? (
+                    <ul className="space-y-4">
+                      {reviews.map((review) => (
+                        <li key={review.review_id} className="border-b border-gray-200 pb-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium text-gray-900">{review.user_username}</p>
+                              <div className="flex items-center mt-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <svg
+                                    key={i}
+                                    className={`w-5 h-5 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                ))}
+                              </div>
+                            </div>
+                            <span className="text-sm text-gray-500">
+                              {new Date(review.review_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-gray-700">{review.comment}</p>
+                          {review.user_id === user.user_id && (
+                            <button
+                              onClick={() => handleDeleteReview(review.review_id)}
+                              className="mt-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500">No reviews yet.</p>
+                  )}
+
+                  <div className="mt-8">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Add Your Review</h4>
+                    <textarea
+                      placeholder="Your review"
+                      value={newReview.comment}
+                      onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      rows={4}
+                    />
+                    <div className="mt-3">
+                      <span className="text-gray-700 font-medium">Rating:</span>
+                      <div className="flex mt-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setNewReview({ ...newReview, rating: star })}
+                            className="text-2xl focus:outline-none"
+                          >
+                            <span className={newReview.rating >= star ? 'text-yellow-400' : 'text-gray-300'}>
+                              ★
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (newReview.comment && newReview.rating) {
+                          try {
+                            const response = await fetch("http://localhost:5000/lessonreviews", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                user_id: user.user_id,
+                                lesson_id: currentLesson.lesson_id,
+                                rating: newReview.rating,
+                                comment: newReview.comment,
+                              }),
+                            });
+
+                            if (!response.ok) throw new Error('Failed to submit review');
+                            
+                            const savedReview = await response.json();
+                            setReviews([...reviews, savedReview]);
+                            setNewReview({ comment: "", rating: 0 });
+                          } catch (error) {
+                            console.error("Error submitting review:", error);
+                            alert("Failed to submit review. Please try again.");
+                          }
+                        } else {
+                          alert("Please fill out all fields and select a rating.");
+                        }
+                      }}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Submit Review
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "discussions" && (
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Discussions</h3>
+                  
                   {discussions.length > 0 ? (
-                    discussions.map((discussion, index) => (
-                      <li key={index} style={{ marginBottom: "10px" }}>
-                        <strong>{discussion.title}</strong> by {discussion.user_username} on{" "}
-                        {new Date(discussion.discussion_date).toLocaleDateString()}
-                        <p style={{ marginTop: "5px", color: "#555" }}>{discussion.content}</p>
-                        <h5 style={{ marginTop: "10px", fontWeight: "bold" }}>Comments:</h5>
-                        <ul>
-                          {comments
-                            .filter((comment) => comment.discussion_id === discussion.discussion_id)
-                            .map((comment, commentIndex) => (
-                              <li key={commentIndex} style={{ marginBottom: "5px" }}>
-                                <strong>{comment.user_username}:</strong> {comment.content}
-                                {comment.user_id === user.user_id && ( // Show the button only if the user owns the comment
-                                  <button
-                                    onClick={async () => {
+                    <div className="space-y-6">
+                      {discussions.map((discussion) => (
+                        <div key={discussion.discussion_id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <span className="text-blue-600 font-medium">
+                                {discussion.user_username?.charAt(0)}
+                              </span>
+                            </div>
+                            <div className="ml-4 flex-1">
+                              <div className="flex justify-between items-start">
+                                <h4 className="text-lg font-medium text-gray-900">{discussion.title}</h4>
+                                <span className="text-sm text-gray-500">
+                                  {new Date(discussion.discussion_date).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-gray-600">{discussion.content}</p>
+                              
+                              {/* Comments */}
+                              <div className="mt-4 space-y-3">
+                                {comments
+                                  .filter(comment => comment.discussion_id === discussion.discussion_id)
+                                  .map(comment => (
+                                    <div key={comment.comment_id} className="bg-gray-50 p-3 rounded-lg">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex items-center">
+                                          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                            <span className="text-blue-600 text-sm font-medium">
+                                              {comment.user_username?.charAt(0)}
+                                            </span>
+                                          </div>
+                                          <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-900">{comment.user_username}</p>
+                                          </div>
+                                        </div>
+                                        <span className="text-xs text-gray-500">
+                                          {new Date(comment.comment_date).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                      <p className="mt-2 text-sm text-gray-600">{comment.content}</p>
+                                      {comment.user_id === user.user_id && (
+                                        <button
+                                          onClick={async () => {
+                                            try {
+                                              await fetch("http://localhost:5000/comments", {
+                                                method: "DELETE",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ comment_id: comment.comment_id }),
+                                              });
+                                              setComments(comments.filter(c => c.comment_id !== comment.comment_id));
+                                            } catch (error) {
+                                              console.error("Error deleting comment:", error);
+                                              alert("Failed to delete comment. Please try again.");
+                                            }
+                                          }}
+                                          className="mt-2 text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                                        >
+                                          Delete
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))}
+                              </div>
+
+                              {/* Add Comment */}
+                              <div className="mt-4">
+                                <textarea
+                                  placeholder="Write a comment..."
+                                  value={newComment.discussion_id === discussion.discussion_id ? newComment.content : ''}
+                                  onChange={(e) => setNewComment({ 
+                                    discussion_id: discussion.discussion_id, 
+                                    content: e.target.value 
+                                  })}
+                                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  rows={2}
+                                />
+                                <button
+                                  onClick={async () => {
+                                    if (newComment.content && newComment.discussion_id) {
                                       try {
                                         const response = await fetch("http://localhost:5000/comments", {
-                                          method: "DELETE",
+                                          method: "POST",
                                           headers: { "Content-Type": "application/json" },
-                                          body: JSON.stringify({ comment_id: comment.comment_id }),
+                                          body: JSON.stringify({
+                                            user_id: user.user_id,
+                                            discussion_id: newComment.discussion_id,
+                                            content: newComment.content,
+                                            comment_date: new Date().toISOString(),
+                                          }),
                                         });
 
-                                        if (!response.ok) {
-                                          throw new Error(`HTTP error! Status: ${response.status}`);
-                                        }
-
-                                        // Remove the deleted comment from the state
-                                        setComments(comments.filter((c) => c.comment_id !== comment.comment_id));
+                                        if (!response.ok) throw new Error('Failed to post comment');
+                                        
+                                        const newCommentData = await response.json();
+                                        setComments([...comments, newCommentData]);
+                                        setNewComment({ discussion_id: null, content: '' });
                                       } catch (error) {
-                                        console.error("Error deleting comment:", error);
-                                        alert("Failed to delete comment. Please try again.");
+                                        console.error("Error posting comment:", error);
+                                        alert("Failed to post comment. Please try again.");
                                       }
-                                    }}
-                                    style={{
-                                      marginLeft: "10px",
-                                      padding: "5px 10px",
-                                      backgroundColor: "#FF4D4D",
-                                      color: "#fff",
-                                      border: "none",
-                                      borderRadius: "5px",
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </li>
-                            ))}
-                        </ul>
-                        <textarea
-                          placeholder="Add a comment"
-                          value={newComment.discussion_id === discussion.discussion_id ? newComment.content : ""}
-                          onChange={(e) =>
-                            setNewComment({ discussion_id: discussion.discussion_id, content: e.target.value })
-                          }
-                          style={{
-                            display: "block",
-                            width: "100%",
-                            padding: "10px",
-                            marginBottom: "10px",
-                            border: "1px solid #ccc",
-                            borderRadius: "5px",
-                          }}
-                        ></textarea>
-                        <button
-                          onClick={async () => {
-                            if (newComment.content && newComment.discussion_id) {
-                              const commentData = {
-                                user_id: user.user_id,
-                                discussion_id: newComment.discussion_id,
-                                content: newComment.content,
-                                comment_date: new Date().toISOString(),
-                              };
-
-                              try {
-                                const response = await fetch("http://localhost:5000/comments", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify(commentData),
-                                });
-
-                                if (!response.ok) {
-                                  throw new Error(`HTTP error! Status: ${response.status}`);
-                                }
-
-                                const savedComment = await response.json();
-                                setComments([...comments, savedComment]);
-                                setNewComment({ discussion_id: null, content: "" });
-                              } catch (error) {
-                                console.error("Error submitting comment:", error);
-                                alert("Failed to submit comment. Please try again.");
-                              }
-                            } else {
-                              alert("Please enter a comment.");
-                            }
-                          }}
-                          style={{
-                            padding: "5px 10px",
-                            backgroundColor: "#007BFF",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: "5px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Add Comment
-                        </button>
-                      </li>
-                    ))
+                                    } else {
+                                      alert("Please write a comment before posting.");
+                                    }
+                                  }}
+                                  className="mt-2 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                                >
+                                  Post Comment
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <p style={{ color: "#555" }}>No discussions available.</p>
+                    <p className="text-gray-500">No discussions available.</p>
                   )}
-                </ul>
 
-                <div style={{ marginTop: "20px" }}>
-                  <h4 style={{ fontSize: "18px", fontWeight: "bold", color: "#333" }}>Start a New Discussion</h4>
-                  <input
-                    type="text"
-                    placeholder="Discussion Title"
-                    value={newDiscussion.title}
-                    onChange={(e) => setNewDiscussion({ ...newDiscussion, title: e.target.value })}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      padding: "10px",
-                      marginBottom: "10px",
-                      border: "1px solid #ccc",
-                      borderRadius: "5px",
-                    }}
-                  />
-                  <textarea
-                    placeholder="Discussion Content"
-                    value={newDiscussion.content}
-                    onChange={(e) => setNewDiscussion({ ...newDiscussion, content: e.target.value })}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      padding: "10px",
-                      marginBottom: "10px",
-                      border: "1px solid #ccc",
-                      borderRadius: "5px",
-                    }}
-                  ></textarea>
-                  <button
-                    onClick={async () => {
-                      if (newDiscussion.title && newDiscussion.content) {
-                        const discussionData = {
-                          user_id: user.user_id,
-                          course_id: course_id,
-                          title: newDiscussion.title,
-                          content: newDiscussion.content,
-                          discussion_date: new Date().toISOString(),
-                        };
+                  {/* New Discussion Form */}
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Start New Discussion</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input
+                          type="text"
+                          placeholder="Discussion title"
+                          value={newDiscussion.title}
+                          onChange={(e) => setNewDiscussion({ ...newDiscussion, title: e.target.value })}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                        <textarea
+                          placeholder="What would you like to discuss?"
+                          value={newDiscussion.content}
+                          onChange={(e) => setNewDiscussion({ ...newDiscussion, content: e.target.value })}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          rows={4}
+                        />
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (newDiscussion.title && newDiscussion.content) {
+                            try {
+                              const response = await fetch("http://localhost:5000/discussions", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  user_id: user.user_id,
+                                  course_id: course_id,
+                                  title: newDiscussion.title,
+                                  content: newDiscussion.content,
+                                  discussion_date: new Date().toISOString(),
+                                }),
+                              });
 
-                        try {
-                          const response = await fetch("http://localhost:5000/discussions", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(discussionData),
-                          });
-
-                          if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
+                              if (!response.ok) throw new Error('Failed to start discussion');
+                              
+                              const newDiscussionData = await response.json();
+                              setDiscussions([...discussions, newDiscussionData]);
+                              setNewDiscussion({ title: "", content: "" });
+                            } catch (error) {
+                              console.error("Error starting discussion:", error);
+                              alert("Failed to start discussion. Please try again.");
+                            }
+                          } else {
+                            alert("Please fill out both the title and content.");
                           }
-
-                          const savedDiscussion = await response.json();
-                          setDiscussions([...discussions, savedDiscussion]);
-                          setNewDiscussion({ title: "", content: "" });
-                        } catch (error) {
-                          console.error("Error submitting discussion:", error);
-                          alert("Failed to submit discussion. Please try again.");
-                        }
-                      } else {
-                        alert("Please fill out both the title and content.");
-                      }
-                    }}
-                    style={{
-                      padding: "10px 20px",
-                      backgroundColor: "#007BFF",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "5px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Start Discussion
-                  </button>
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Start Discussion
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      <CompletionCelebration 
+        show={showCelebration} 
+        onClose={() => setShowCelebration(false)}
+        courseTitle={course.title}
+        name={user.username}
+      />
     </>
   );
 };

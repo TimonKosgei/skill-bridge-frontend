@@ -11,9 +11,9 @@ const TeacherDashboard = () => {
   const [discussions, setDiscussions] = useState([]);
   const [editingLesson, setEditingLesson] = useState(null);
   const [editLessonData, setEditLessonData] = useState({
+    lesson_id: '', // Add lesson_id
     title: '',
     description: '',
-    duration: '',
     video_url: ''
   });
   const [newVideo, setNewVideo] = useState(null);
@@ -166,9 +166,9 @@ const TeacherDashboard = () => {
   const handleEditLesson = (lesson) => {
     setEditingLesson(lesson);
     setEditLessonData({
+      lesson_id: lesson.lesson_id, // Include lesson_id
       title: lesson.title,
       description: lesson.description,
-      duration: lesson.duration,
       video_url: lesson.video_url
     });
     setNewVideo(null);
@@ -189,59 +189,44 @@ const TeacherDashboard = () => {
   const handleSaveLesson = async () => {
     if (!editingLesson) return;
     setIsSaving(true);
-
+  
     try {
-      // First update lesson metadata if changed
-      const metadataResponse = await fetch(
-        `http://localhost:5000/lessons/${editingLesson.lesson_id}`,
+      const formData = new FormData();
+      formData.append('lesson_id', editLessonData.lesson_id); // Include lesson_id
+      formData.append('title', editLessonData.title);
+      formData.append('description', editLessonData.description);
+  
+      if (newVideo) {
+        formData.append('file', newVideo);
+      }
+  
+      const response = await fetch(
+        `http://localhost:5000/lessons/${editLessonData.lesson_id}`, // Use lesson_id in the URL
         {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(editLessonData),
+          body: formData
         }
       );
-
-      if (!metadataResponse.ok) {
-        throw new Error('Failed to update lesson metadata');
+  
+      if (!response.ok) {
+        throw new Error('Failed to update lesson');
       }
-
-      // Then update video if a new one was selected
-      let updatedLesson = await metadataResponse.json();
-      
-      if (newVideo) {
-        const formData = new FormData();
-        formData.append('video', newVideo);
-
-        const videoResponse = await fetch(
-          `http://localhost:5000/lessons/${editingLesson.lesson_id}/video`, 
-          {
-            method: 'PUT',
-            body: formData,
-          }
-        );
-
-        if (!videoResponse.ok) {
-          throw new Error('Failed to update lesson video');
-        }
-        updatedLesson = await videoResponse.json();
-      }
-
-      // Update local state
+  
+      const updatedLesson = await response.json();
+  
       const updatedCourses = courses.map(course => {
         if (course.course_id === selectedCourse.course_id) {
-          const updatedLessons = course.lessons.map(lesson => 
+          const updatedLessons = course.lessons.map(lesson =>
             lesson.lesson_id === updatedLesson.lesson_id ? updatedLesson : lesson
           );
           return { ...course, lessons: updatedLessons };
         }
         return course;
       });
-
+  
       setCourses(updatedCourses);
       setSelectedCourse(updatedCourses.find(c => c.course_id === selectedCourse.course_id));
-      
+  
       alert('Lesson updated successfully!');
       setEditingLesson(null);
     } catch (error) {
@@ -251,26 +236,32 @@ const TeacherDashboard = () => {
       setIsSaving(false);
     }
   };
+  
 
   const handleDeleteLesson = async () => {
     if (!editingLesson || !window.confirm('Are you sure you want to delete this lesson? This cannot be undone.')) {
-      return;
+      return; // Exit if no lesson is being edited or user cancels the confirmation
     }
-
-    setIsDeleting(true);
+  
+    setIsDeleting(true); // Indicate that the delete operation is in progress
+  
     try {
       const response = await fetch(
         `http://localhost:5000/lessons/${editingLesson.lesson_id}`,
         {
           method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json', // Specify JSON content type
+          },
+          body: JSON.stringify({ lesson_id: editingLesson.lesson_id }), // Include lesson_id in the request body
         }
       );
-
+  
       if (!response.ok) {
-        throw new Error('Failed to delete lesson');
+        throw new Error('Failed to delete lesson'); // Handle failed request
       }
-
-      // Update local state
+  
+      // Update local state to remove the deleted lesson
       const updatedCourses = courses.map(course => {
         if (course.course_id === selectedCourse.course_id) {
           const updatedLessons = course.lessons.filter(
@@ -280,19 +271,20 @@ const TeacherDashboard = () => {
         }
         return course;
       });
-
-      setCourses(updatedCourses);
-      setSelectedCourse(updatedCourses.find(c => c.course_id === selectedCourse.course_id));
+  
+      setCourses(updatedCourses); // Update courses state
+      setSelectedCourse(updatedCourses.find(c => c.course_id === selectedCourse.course_id)); // Update selected course
       
-      alert('Lesson deleted successfully!');
-      setEditingLesson(null);
+      alert('Lesson deleted successfully!'); // Notify the user
+      setEditingLesson(null); // Clear the editing state
     } catch (error) {
-      console.error('Error deleting lesson:', error);
-      alert('Failed to delete lesson. Please try again.');
+      console.error('Error deleting lesson:', error); // Log the error
+      alert('Failed to delete lesson. Please try again.'); // Notify the user of the error
     } finally {
-      setIsDeleting(false);
+      setIsDeleting(false); // Reset the loading state
     }
   };
+  
 
   const handlePostComment = async (discussionId) => {
     if (!newComment.content || !discussionId) {
@@ -537,8 +529,14 @@ const TeacherDashboard = () => {
   
               {/* Lessons Section */}
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-200">
+                <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
                   <h2 className="text-2xl font-semibold text-gray-900">Course Lessons</h2>
+                  <Link
+                    to={`/courses/${selectedCourse.course_id}/add-lesson`}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    Add More Lessons
+                  </Link>
                 </div>
                 <div className="p-6 space-y-6">
                   {selectedCourse.lessons?.length > 0 ? (
@@ -826,19 +824,6 @@ const TeacherDashboard = () => {
                         value={editLessonData.title}
                         onChange={handleLessonDataChange}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Duration (seconds)*</label>
-                      <input
-                        type="number"
-                        name="duration"
-                        value={editLessonData.duration}
-                        onChange={handleLessonDataChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        min="1"
                         required
                       />
                     </div>
