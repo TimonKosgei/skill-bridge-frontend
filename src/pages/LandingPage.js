@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const LandingPage = () => {
   const [topCourses, setTopCourses] = useState([]);
@@ -179,9 +180,13 @@ const LandingPage = () => {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 class="text-3xl font-extrabold text-gray-900 mb-8">Top Courses</h2>
           {isLoading ? (
-            <p>Loading courses...</p>
+            <div className="flex justify-center py-12">
+              <LoadingSpinner size="large" />
+            </div>
           ) : error ? (
-            <p class="text-red-500">Error: {error}</p>
+            <div className="text-center py-8">
+              <p className="text-red-500 text-lg">{error}</p>
+            </div>
           ) : (
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {topCourses.map((course) => (

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import { jwtDecode } from 'jwt-decode';
 import SimpleCourseCard from '../components/SimpleCourseCard';
 import { Link } from 'react-router-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const ProfilePage = () => {
   const [decodedToken, setDecodedToken] = useState(null);
@@ -14,6 +15,8 @@ const ProfilePage = () => {
   const [user, setUser] = useState({});
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -97,6 +100,68 @@ const ProfilePage = () => {
     return colors[tier] || colors.default;
   };
 
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (JPEG, PNG, or GIF)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}/profile-photo`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload profile photo');
+      }
+
+      const data = await response.json();
+      setUser(prevUser => ({
+        ...prevUser,
+        profile_picture_url: data.profile_picture_url
+      }));
+
+      // Show success message
+      const successMsg = document.createElement('div');
+      successMsg.className = 'fixed top-4 right-4 z-50 px-4 py-2 bg-green-500 text-white rounded-md shadow-lg';
+      successMsg.textContent = 'Profile photo updated successfully!';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'fixed top-4 right-4 z-50 px-4 py-2 bg-red-500 text-white rounded-md shadow-lg';
+      errorMsg.textContent = error.message || 'Failed to upload profile photo. Please try again.';
+      document.body.appendChild(errorMsg);
+      setTimeout(() => errorMsg.remove(), 3000);
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -131,9 +196,13 @@ const ProfilePage = () => {
       <div className="bg-white">
         <div className="max-w-7xl mx-auto py-16 px-4 sm:py-12 sm:px-6 lg:px-8 text-center">
           {isLoadingUser ? (
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <div className="flex justify-center py-8">
+              <LoadingSpinner size="large" />
+            </div>
           ) : error ? (
-            <div className="text-red-500">{error}</div>
+            <div className="text-center py-8">
+              <p className="text-red-500 text-lg">{error}</p>
+            </div>
           ) : (
             <>
               <div className="relative mx-auto">
@@ -198,11 +267,11 @@ const ProfilePage = () => {
             <div className="p-6">
               {isLoading ? (
                 <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                  <LoadingSpinner size="large" />
                 </div>
               ) : error ? (
-                <div className="text-center py-8 text-red-500">
-                  Error loading courses: {error}
+                <div className="text-center py-8">
+                  <p className="text-red-500 text-lg">Error loading courses: {error}</p>
                 </div>
               ) : enrolledCourses.length === 0 ? (
                 <div className="text-center py-12">
@@ -252,11 +321,11 @@ const ProfilePage = () => {
             <div className="p-6">
               {isLoading ? (
                 <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                  <LoadingSpinner size="large" />
                 </div>
               ) : error ? (
-                <div className="text-center py-8 text-red-500">
-                  Error loading badges: {error}
+                <div className="text-center py-8">
+                  <p className="text-red-500 text-lg">Error loading badges: {error}</p>
                 </div>
               ) : badges.length === 0 ? (
                 <div className="text-center py-12">
@@ -372,17 +441,55 @@ const ProfilePage = () => {
                 </p>
               </div>
 
+              {/* Profile Photo Upload Section */}
+              <div className="max-w-2xl mx-auto mb-8">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="relative">
+                    <img
+                      src={user.profile_picture_url || "https://via.placeholder.com/150"}
+                      alt="Profile"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                    />
+                    {isUploadingPhoto && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
+                        <LoadingSpinner size="small" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-center space-y-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handlePhotoUpload}
+                      accept="image/jpeg,image/png,image/gif"
+                      className="hidden"
+                      id="profile-photo-upload"
+                    />
+                    <label
+                      htmlFor="profile-photo-upload"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isUploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                    </label>
+                    <p className="text-sm text-gray-500">
+                      JPG, PNG or GIF. Max size: 5MB
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <form
                 className="space-y-6 max-w-2xl mx-auto"
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  setIsLoading(true);
 
                   const updatedUser = {
-                    username: e.target[0].value,
-                    first_name: e.target[1].value,
-                    last_name: e.target[2].value,
-                    email: e.target[3].value,
-                    bio: e.target[4].value,
+                    username: e.target.username.value.trim(),
+                    first_name: e.target.first_name.value.trim(),
+                    last_name: e.target.last_name.value.trim(),
+                    email: e.target.email.value.trim(),
+                    bio: e.target.bio.value.trim(),
                   };
 
                   const token = localStorage.getItem('token');
@@ -416,69 +523,113 @@ const ProfilePage = () => {
                     // Show error message
                     const errorMsg = document.createElement('div');
                     errorMsg.className = 'fixed top-4 right-4 z-50 px-4 py-2 bg-red-500 text-white rounded-md shadow-lg';
-                    errorMsg.textContent = 'Failed to update profile. Please try again.';
+                    errorMsg.textContent = error.message || 'Failed to update profile. Please try again.';
                     document.body.appendChild(errorMsg);
                     setTimeout(() => errorMsg.remove(), 3000);
+                  } finally {
+                    setIsLoading(false);
                   }
                 }}
               >
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                      Username
+                    </label>
                     <input
                       type="text"
+                      id="username"
+                      name="username"
                       defaultValue={user.username}
+                      required
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      placeholder="Choose a username"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      This will be your unique identifier on the platform
+                    </p>
+                  </div>
+                  <div>
+                    <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      id="first_name"
+                      name="first_name"
+                      defaultValue={user.first_name}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      placeholder="Enter your first name"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      id="last_name"
+                      name="last_name"
+                      defaultValue={user.last_name}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      placeholder="Enter your last name"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
                     <input
                       type="email"
+                      id="email"
+                      name="email"
                       defaultValue={user.email}
+                      required
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      placeholder="Enter your email address"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                    <input
-                      type="text"
-                      defaultValue={user.first_name}
+                  <div className="sm:col-span-2">
+                    <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
+                      Bio
+                    </label>
+                    <textarea
+                      id="bio"
+                      name="bio"
+                      defaultValue={user.bio}
+                      rows="3"
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      placeholder="Tell us about yourself..."
                     />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Brief description for your profile. Maximum 200 characters.
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                    <input
-                      type="text"
-                      defaultValue={user.last_name}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                  <textarea
-                    defaultValue={user.bio}
-                    rows="3"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Tell us about yourself..."
-                  />
                 </div>
 
                 <div className="pt-4 flex justify-end space-x-3">
                   <button
                     type="button"
+                    onClick={() => setActiveTab('courses')}
                     className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    disabled={isLoading}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
-                    Save Changes
+                    {isLoading ? (
+                      <>
+                        <LoadingSpinner size="small" />
+                        <span className="ml-2">Saving...</span>
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
                   </button>
                 </div>
               </form>

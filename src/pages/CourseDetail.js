@@ -114,16 +114,29 @@ const CourseDetail = () => {
           const enrollment = userData.enrollments.find(e => parseInt(e.course.course_id) === parseInt(course_id));
           if (enrollment) {
             setEnrollmentDetails(enrollment);
+            // Show celebration if progress is 100 and show_celebration is false
             if (enrollment.progress === 100 && !enrollment.show_celebration) {
               setShowCelebration(true);
-              await fetch(`http://localhost:5000/enrollments`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                  show_celebration: true, 
-                  enrollment_id: enrollment.enrollment_id 
-                }),
-              });
+              // Update the show_celebration flag in the backend
+              try {
+                const updateResponse = await fetch(`http://127.0.0.1:5000/enrollments`, {
+                  method: "PATCH",
+                  headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                  },
+                  body: JSON.stringify({ 
+                    enrollment_id: enrollment.enrollment_id,
+                    show_celebration: true
+                  }),
+                });
+                
+                if (!updateResponse.ok) {
+                  console.error('Failed to update celebration status');
+                }
+              } catch (error) {
+                console.error('Error updating celebration status:', error);
+              }
             }
           }
         }
@@ -132,6 +145,7 @@ const CourseDetail = () => {
       }
     };
 
+    fetchEnrollmentStatus();
     const intervalId = setInterval(fetchEnrollmentStatus, 5000);
     return () => clearInterval(intervalId);
   }, [course_id]);

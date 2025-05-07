@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
     setError('');
-    setLoading(true); // Set loading to true
+    setIsLoading(true);
 
     try {
       const response = await fetch('http://127.0.0.1:5000/forgot-password', {
@@ -34,7 +35,7 @@ const ForgotPassword = () => {
       console.error('Error:', err);
       setError(err.message || 'An error occurred');
     } finally {
-      setLoading(false); // Reset loading state
+      setIsLoading(false);
     }
   };
 
@@ -42,17 +43,17 @@ const ForgotPassword = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Forgot Password</h2>
-
+        <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Reset Password</h2>
+          
           {message && (
-            <div className="mb-6 p-3 bg-green-50 text-green-600 rounded-md">
+            <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-md">
               {message}
             </div>
           )}
-
+          
           {error && (
-            <div className="mb-6 p-3 bg-red-50 text-red-600 rounded-md">
+            <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
               {error}
             </div>
           )}
@@ -65,34 +66,29 @@ const ForgotPassword = () => {
               <input
                 type="email"
                 id="email"
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                disabled={isLoading}
               />
             </div>
 
             <div>
               <button
                 type="submit"
-                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-                disabled={loading} // Disable the button when loading
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading}
               >
-                {loading ? 'Processing...' : 'Send Reset Link'}
+                {isLoading ? <LoadingSpinner size="small" /> : 'Send Reset Link'}
               </button>
             </div>
           </form>
 
-          <div className="mt-6 text-center text-sm">
-            <p className="text-gray-600">
-              Remembered your password?{' '}
-              <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign in
-              </Link>
-            </p>
+          <div className="mt-6 text-center">
+            <Link to="/login" className="text-sm text-blue-600 hover:text-blue-500">
+              Back to Login
+            </Link>
           </div>
         </div>
       </div>

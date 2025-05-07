@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
 import CourseCard from '../components/CourseCard';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { jwtDecode } from 'jwt-decode';
 
 const Home = () => {
   const [allCourses, setAllCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -42,7 +43,7 @@ const Home = () => {
       } catch (err) {
         setError(err.message || 'Failed to load courses');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -61,40 +62,33 @@ const Home = () => {
     course.enrollments?.some(enrollment => enrollment.user.user_id === currentUserId)
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <>
+      <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="min-h-screen bg-gray-50 p-6 max-w-7xl mx-auto">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-          </div>
+        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+          <LoadingSpinner size="large" />
         </div>
-      </>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <>
+      <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="min-h-screen bg-gray-50 p-6 max-w-7xl mx-auto">
-          <div className="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto text-center">
-            <div className="text-red-500 mb-4 text-lg">{error}</div>
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              Refresh Page
-            </button>
+        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
+            <p className="text-gray-600">{error}</p>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="min-h-screen bg-gray-50 px-6 py-8 max-w-7xl mx-auto">
         {/* Header */}
@@ -114,7 +108,7 @@ const Home = () => {
             <h2 className="text-xl font-semibold mb-6 text-gray-800">My Enrolled Courses</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {enrolledCourses.map(course => (
-                <CourseCard 
+                <CourseCard
                   key={course.id}
                   {...course}
                   isEnrolled={true}
@@ -137,7 +131,7 @@ const Home = () => {
           </div>
         </section>
       </div>
-    </>
+    </div>
   );
 };
 

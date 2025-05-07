@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
-import {jwtDecode} from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -10,11 +11,13 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [infoMessage, setInfoMessage] = useState(''); // For unconfirmed email messages
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setInfoMessage('');
+    setIsLoading(true);
 
     try {
       const response = await fetch('http://127.0.0.1:5000/login', {
@@ -41,9 +44,11 @@ const LoginPage = () => {
       localStorage.setItem('token', data.token);
 
       const decodedToken = jwtDecode(data.token);
-      if (decodedToken.role === 'Instructor') {
+      const role = decodedToken.role;
+
+      if (role === 'Instructor') {
         navigate('/teacher-dashboard');
-      } else if (decodedToken.role === 'Learner') {
+      } else if (role === 'Learner') {
         navigate('/home');
       } else {
         throw new Error('Invalid user role');
@@ -51,6 +56,8 @@ const LoginPage = () => {
     } catch (err) {
       console.error('Login error:', err);
       setError('Login failed. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -86,6 +93,7 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -102,11 +110,13 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-blue-600 hover:text-blue-800"
+                  disabled={isLoading}
                 >
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
@@ -120,6 +130,7 @@ const LoginPage = () => {
                   name="remember-me"
                   type="checkbox"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  disabled={isLoading}
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                   Remember me
@@ -136,9 +147,10 @@ const LoginPage = () => {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading}
               >
-                Sign in
+                {isLoading ? <LoadingSpinner size="small" /> : 'Sign in'}
               </button>
             </div>
           </form>

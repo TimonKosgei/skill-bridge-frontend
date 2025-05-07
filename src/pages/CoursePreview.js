@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import ReactPlayer from 'react-player';
-import { Link } from 'react-router-dom';
+import Header from '../components/Header';
 
 const CoursePreview = () => {
   const navigate = useNavigate();
@@ -106,43 +106,7 @@ const CoursePreview = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation - Matching the landing page */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-8 w-8 text-blue-600"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm-1-17h2v6h-2zm0 8h2v2h-2z" />
-                </svg>
-                <span className="ml-2 text-xl font-bold text-gray-900">SkillBridge</span>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link to="/profile" className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">
-                My Profile
-              </Link>
-              <Link to="/courses" className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">
-                Browse Courses
-              </Link>
-              <button 
-                onClick={() => {
-                  localStorage.removeItem('token');
-                  window.location.href = '/login';
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header user={user} />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
