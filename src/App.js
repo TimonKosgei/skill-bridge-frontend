@@ -13,7 +13,6 @@ import LandingPage from './pages/LandingPage';
 import ConfirmEmail from "./pages/ConfirmEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import AddLesson from "./pages/AddLesson";
 import AuthRoute from './components/AuthRoute';
 import { useAuth } from './hooks/useAuth';
 
@@ -71,7 +70,7 @@ const App = () => {
           </AuthRoute>
         } />
         <Route path="/preview/:course_id" element={
-          <AuthRoute allowedRoles={['Learner']}>
+          <AuthRoute allowedRoles={['Learner','Instructor']}>
             <CoursePreview />
           </AuthRoute>
         } />
@@ -85,11 +84,6 @@ const App = () => {
         <Route path="/upload-course" element={
           <AuthRoute allowedRoles={['Instructor']}>
             <UploadCourse />
-          </AuthRoute>
-        } />
-        <Route path="/courses/:courseId/add-lesson" element={
-          <AuthRoute allowedRoles={['Instructor']}>
-            <AddLesson />
           </AuthRoute>
         } />
       </Routes>

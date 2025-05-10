@@ -4,6 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 import SimpleCourseCard from '../components/SimpleCourseCard';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Notification from '../components/Notification';
 
 const ProfilePage = () => {
   const [decodedToken, setDecodedToken] = useState(null);
@@ -17,6 +18,7 @@ const ProfilePage = () => {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -107,13 +109,19 @@ const ProfilePage = () => {
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
     if (!validTypes.includes(file.type)) {
-      alert('Please upload a valid image file (JPEG, PNG, or GIF)');
+      setNotification({
+        type: 'error',
+        message: 'Please upload a valid image file (JPEG, PNG, or GIF)'
+      });
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
+      setNotification({
+        type: 'error',
+        message: 'File size must be less than 5MB'
+      });
       return;
     }
 
@@ -141,19 +149,16 @@ const ProfilePage = () => {
         profile_picture_url: data.profile_picture_url
       }));
 
-      // Show success message
-      const successMsg = document.createElement('div');
-      successMsg.className = 'fixed top-4 right-4 z-50 px-4 py-2 bg-green-500 text-white rounded-md shadow-lg';
-      successMsg.textContent = 'Profile photo updated successfully!';
-      document.body.appendChild(successMsg);
-      setTimeout(() => successMsg.remove(), 3000);
+      setNotification({
+        type: 'success',
+        message: 'Profile photo updated successfully!'
+      });
     } catch (error) {
       console.error('Error uploading photo:', error);
-      const errorMsg = document.createElement('div');
-      errorMsg.className = 'fixed top-4 right-4 z-50 px-4 py-2 bg-red-500 text-white rounded-md shadow-lg';
-      errorMsg.textContent = error.message || 'Failed to upload profile photo. Please try again.';
-      document.body.appendChild(errorMsg);
-      setTimeout(() => errorMsg.remove(), 3000);
+      setNotification({
+        type: 'error',
+        message: error.message || 'Failed to upload profile photo. Please try again.'
+      });
     } finally {
       setIsUploadingPhoto(false);
       if (fileInputRef.current) {
@@ -165,6 +170,14 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
+
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
 
       {/* New Badge Notification */}
       {newBadge && (

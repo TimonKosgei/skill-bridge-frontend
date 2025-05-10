@@ -12,11 +12,29 @@ const Home = () => {
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
 
+  const categories = [
+    'Academic subjects',
+    'Technical and vocational skills',
+    'Professional and career skills',
+    'Creative and artistic skill',
+    'Digital skills and Tech',
+    'Languages',
+    'Entrepreneurship',
+    'Soft skills'
+  ];
+
   const calculateDuration = (lessons) => {
     const totalSeconds = lessons?.reduce((sum, lesson) => sum + (lesson.duration || 0), 0) || 0;
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
+  };
+
+  const scrollToCategory = (category) => {
+    const element = document.getElementById(category.replace(/\s+/g, '-').toLowerCase());
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
@@ -102,6 +120,26 @@ const Home = () => {
           <SearchBar onSearch={handleSearch} />
         </div>
 
+        {/* Category Navigation */}
+        <div className="mb-8 overflow-x-auto">
+          <div className="flex space-x-4 pb-2">
+            {categories.map(category => {
+              const categoryCourses = filteredCourses.filter(course => course.category === category);
+              if (categoryCourses.length === 0) return null;
+              
+              return (
+                <button
+                  key={category}
+                  onClick={() => scrollToCategory(category)}
+                  className="px-4 py-2 bg-white rounded-full shadow-sm hover:bg-gray-50 text-gray-700 whitespace-nowrap transition-colors duration-200"
+                >
+                  {category}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Enrolled Courses */}
         {currentUserId && enrolledCourses.length > 0 && (
           <section className="mb-12">
@@ -118,18 +156,29 @@ const Home = () => {
           </section>
         )}
 
-        {/* All Courses */}
-        <section>
-          <h2 className="text-xl font-semibold mb-6 text-gray-800">Available Courses</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses.map(course => (
-              <CourseCard
-                key={course.id}
-                {...course}
-              />
-            ))}
-          </div>
-        </section>
+        {/* Categories */}
+        {categories.map(category => {
+          const categoryCourses = filteredCourses.filter(course => course.category === category);
+          if (categoryCourses.length === 0) return null;
+          
+          return (
+            <section 
+              key={category} 
+              id={category.replace(/\s+/g, '-').toLowerCase()}
+              className="mb-12 scroll-mt-20"
+            >
+              <h2 className="text-xl font-semibold mb-6 text-gray-800">{category}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categoryCourses.map(course => (
+                  <CourseCard
+                    key={course.id}
+                    {...course}
+                  />
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </div>
   );

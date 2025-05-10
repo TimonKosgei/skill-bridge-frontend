@@ -15,6 +15,7 @@ const CoursePreview = () => {
   const [discussions, setDiscussions] = useState([]);
   const [activeTab, setActiveTab] = useState('lessons');
   const [visibleReviews, setVisibleReviews] = useState({});
+  const [isInstructor, setIsInstructor] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -22,6 +23,8 @@ const CoursePreview = () => {
       try {
         const decodedToken = jwtDecode(token);
         setUser({ user_id: decodedToken.user_id, username: decodedToken.username });
+        // Check if user is an instructor
+        setIsInstructor(decodedToken.role === 'Instructor');
       } catch (error) {
         console.error("Invalid token:", error);
         localStorage.removeItem("token");
@@ -110,6 +113,19 @@ const CoursePreview = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back Button for Instructors */}
+        {isInstructor && (
+          <button
+            onClick={() => navigate('/teacher-dashboard')}
+            className="mb-6 flex items-center text-blue-600 hover:text-blue-800"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
+          </button>
+        )}
+
         {/* Course Header Section */}
         <div className="flex flex-col md:flex-row gap-8 mb-10">
           {/* Course Image */}
@@ -375,8 +391,8 @@ const CoursePreview = () => {
           )}
         </div>
 
-        {/* Enroll Section */}
-        {!isEnrolled && (
+        {/* Enroll Section - Only show for non-instructors */}
+        {!isEnrolled && !isInstructor && (
           <div className="mt-12 text-center p-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
             <h3 className="text-2xl font-semibold text-gray-900 mb-4">
               Ready to start learning?

@@ -4,6 +4,7 @@ import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import CompletionCelebration from '../components/CompletionCelebration';
+import DiscussionSection from '../components/DiscussionSection';
 
 const CourseDetail = () => {
   const video = useRef(null);
@@ -58,6 +59,27 @@ const CourseDetail = () => {
         watched_duration: playedSeconds,
       }),
     }).catch((error) => console.error("Error updating progress:", error));
+  };
+
+  // Helper function to generate initials from name
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Helper function to get background color based on initials
+  const getInitialsColor = (initials) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500',
+      'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500'
+    ];
+    const index = initials.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[index % colors.length];
   };
 
   // Data fetching
@@ -261,17 +283,27 @@ const CourseDetail = () => {
               )}
 
               {activeTab === "teacher" && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <img 
-                    src={instructor.profile_picture_url} 
-                    alt={instructor.name} 
-                    className="w-24 h-24 rounded-full object-cover"
-                  />
-                  <div>
-                    <h4 className="text-xl font-bold text-gray-900">
-                      {instructor.first_name} {instructor.last_name}
-                    </h4>
-                    <p className="text-gray-600 mt-1">{instructor.bio}</p>
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex items-center space-x-4">
+                    {instructor.profile_picture_url ? (
+                      <img
+                        src={instructor.profile_picture_url}
+                        alt={`${instructor.first_name} ${instructor.last_name}`}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white border-2 border-gray-200 ${getInitialsColor(getInitials(`${instructor.first_name} ${instructor.last_name}`))}`}>
+                        <span className="text-xl font-medium">
+                          {getInitials(`${instructor.first_name} ${instructor.last_name}`)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {instructor.first_name} {instructor.last_name}
+                      </h3>
+                      <p className="text-gray-600">{instructor.bio || 'No bio available'}</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -383,188 +415,11 @@ const CourseDetail = () => {
               )}
 
               {activeTab === "discussions" && (
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">Discussions</h3>
-                  
-                  {discussions.length > 0 ? (
-                    <div className="space-y-6">
-                      {discussions.map((discussion) => (
-                        <div key={discussion.discussion_id} className="border border-gray-200 rounded-lg p-4">
-                          <div className="flex items-start">
-                            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <span className="text-blue-600 font-medium">
-                                {discussion.user_username?.charAt(0)}
-                              </span>
-                            </div>
-                            <div className="ml-4 flex-1">
-                              <div className="flex justify-between items-start">
-                                <h4 className="text-lg font-medium text-gray-900">{discussion.title}</h4>
-                                <span className="text-sm text-gray-500">
-                                  {new Date(discussion.discussion_date).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="mt-1 text-gray-600">{discussion.content}</p>
-                              
-                              {/* Comments */}
-                              <div className="mt-4 space-y-3">
-                                {comments
-                                  .filter(comment => comment.discussion_id === discussion.discussion_id)
-                                  .map(comment => (
-                                    <div key={comment.comment_id} className="bg-gray-50 p-3 rounded-lg">
-                                      <div className="flex justify-between items-start">
-                                        <div className="flex items-center">
-                                          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                            <span className="text-blue-600 text-sm font-medium">
-                                              {comment.user_username?.charAt(0)}
-                                            </span>
-                                          </div>
-                                          <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">{comment.user_username}</p>
-                                          </div>
-                                        </div>
-                                        <span className="text-xs text-gray-500">
-                                          {new Date(comment.comment_date).toLocaleDateString()}
-                                        </span>
-                                      </div>
-                                      <p className="mt-2 text-sm text-gray-600">{comment.content}</p>
-                                      {comment.user_id === user.user_id && (
-                                        <button
-                                          onClick={async () => {
-                                            try {
-                                              await fetch("http://localhost:5000/comments", {
-                                                method: "DELETE",
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({ comment_id: comment.comment_id }),
-                                              });
-                                              setComments(comments.filter(c => c.comment_id !== comment.comment_id));
-                                            } catch (error) {
-                                              console.error("Error deleting comment:", error);
-                                              alert("Failed to delete comment. Please try again.");
-                                            }
-                                          }}
-                                          className="mt-2 text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                                        >
-                                          Delete
-                                        </button>
-                                      )}
-                                    </div>
-                                  ))}
-                              </div>
-
-                              {/* Add Comment */}
-                              <div className="mt-4">
-                                <textarea
-                                  placeholder="Write a comment..."
-                                  value={newComment.discussion_id === discussion.discussion_id ? newComment.content : ''}
-                                  onChange={(e) => setNewComment({ 
-                                    discussion_id: discussion.discussion_id, 
-                                    content: e.target.value 
-                                  })}
-                                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                  rows={2}
-                                />
-                                <button
-                                  onClick={async () => {
-                                    if (newComment.content && newComment.discussion_id) {
-                                      try {
-                                        const response = await fetch("http://localhost:5000/comments", {
-                                          method: "POST",
-                                          headers: { "Content-Type": "application/json" },
-                                          body: JSON.stringify({
-                                            user_id: user.user_id,
-                                            discussion_id: newComment.discussion_id,
-                                            content: newComment.content,
-                                            comment_date: new Date().toISOString(),
-                                          }),
-                                        });
-
-                                        if (!response.ok) throw new Error('Failed to post comment');
-                                        
-                                        const newCommentData = await response.json();
-                                        setComments([...comments, newCommentData]);
-                                        setNewComment({ discussion_id: null, content: '' });
-                                      } catch (error) {
-                                        console.error("Error posting comment:", error);
-                                        alert("Failed to post comment. Please try again.");
-                                      }
-                                    } else {
-                                      alert("Please write a comment before posting.");
-                                    }
-                                  }}
-                                  className="mt-2 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                                >
-                                  Post Comment
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">No discussions available.</p>
-                  )}
-
-                  {/* New Discussion Form */}
-                  <div className="mt-8 pt-6 border-t border-gray-200">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Start New Discussion</h4>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input
-                          type="text"
-                          placeholder="Discussion title"
-                          value={newDiscussion.title}
-                          onChange={(e) => setNewDiscussion({ ...newDiscussion, title: e.target.value })}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
-                        <textarea
-                          placeholder="What would you like to discuss?"
-                          value={newDiscussion.content}
-                          onChange={(e) => setNewDiscussion({ ...newDiscussion, content: e.target.value })}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          rows={4}
-                        />
-                      </div>
-                      <button
-                        onClick={async () => {
-                          if (newDiscussion.title && newDiscussion.content) {
-                            try {
-                              const response = await fetch("http://localhost:5000/discussions", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  user_id: user.user_id,
-                                  course_id: course_id,
-                                  title: newDiscussion.title,
-                                  content: newDiscussion.content,
-                                  discussion_date: new Date().toISOString(),
-                                }),
-                              });
-
-                              if (!response.ok) throw new Error('Failed to start discussion');
-                              
-                              const newDiscussionData = await response.json();
-                              setDiscussions([...discussions, newDiscussionData]);
-                              setNewDiscussion({ title: "", content: "" });
-                            } catch (error) {
-                              console.error("Error starting discussion:", error);
-                              alert("Failed to start discussion. Please try again.");
-                            }
-                          } else {
-                            alert("Please fill out both the title and content.");
-                          }
-                        }}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Start Discussion
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <DiscussionSection 
+                  courseId={course_id}
+                  userId={user.user_id}
+                  userUsername={user.username}
+                />
               )}
             </div>
           </div>
