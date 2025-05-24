@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import ReactPlayer from 'react-player';
 import Header from '../components/Header';
+import { getAuthHeader } from '../utils/authUtils';
 
 const CoursePreview = () => {
   const navigate = useNavigate();
@@ -31,7 +32,9 @@ const CoursePreview = () => {
       }
     }
 
-    fetch(`http://127.0.0.1:5000/courses/${course_id}`)
+    fetch(`http://127.0.0.1:5000/courses/${course_id}`, {
+      headers: getAuthHeader()
+    })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -47,8 +50,10 @@ const CoursePreview = () => {
       .catch((error) => console.error("Error fetching course data:", error));
 
     fetch(`http://127.0.0.1:5000/discussions?course_id=${course_id}`, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" }
+      headers: {
+        ...getAuthHeader(),
+        "Content-Type": "application/json"
+      }
     })
       .then((response) => response.json())
       .then((data) => setDiscussions(data))
@@ -59,7 +64,10 @@ const CoursePreview = () => {
     try {
       const response = await fetch("http://127.0.0.1:5000/enrollments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          ...getAuthHeader(),
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({
           course_id: course_id,
           user_id: user.user_id,

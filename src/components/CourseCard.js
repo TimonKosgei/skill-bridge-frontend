@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { getAuthHeader } from '../utils/authUtils';
 
 const CourseCard = ({ 
   lessons = [], 
@@ -10,7 +11,8 @@ const CourseCard = ({
   isEnrolled, 
   course_id, 
   description = '',
-  enrollmentDetails = {}
+  enrollmentDetails = {},
+  category = ''
 }) => {
   const navigate = useNavigate();
   const [enrolled, setEnrolled] = useState(isEnrolled);
@@ -61,7 +63,9 @@ const CourseCard = ({
         const decodedToken = jwtDecode(token);
         const user_id = decodedToken.user_id;
 
-        const response = await fetch(`http://127.0.0.1:5000/users/${user_id}`);
+        const response = await fetch(`http://127.0.0.1:5000/users/${user_id}`, {
+          headers: getAuthHeader()
+        });
         if (response.ok) {
           const user = await response.json();
           const enrollment = user.enrollments.find(e => e.course_id === course_id);
@@ -91,8 +95,8 @@ const CourseCard = ({
       const response = await fetch(`http://127.0.0.1:5000/enrollments`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...getAuthHeader(),
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           course_id: course_id,
@@ -133,10 +137,15 @@ const CourseCard = ({
         <div className="absolute bottom-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
           {duration()}
         </div>
+        {category && (
+          <div className="absolute top-3 right-3 bg-gray-800 text-white px-3 py-1 rounded-full text-sm font-semibold">
+            {category}
+          </div>
+        )}
       </div>
 
       {/* Course Content */}
-      <div className="p-6">
+      <div className="p-4">
         <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
           {title}
         </h3>
@@ -187,7 +196,7 @@ const CourseCard = ({
         )}
 
         {/* Buttons */}
-        <div className="flex space-x-3 mt-4">
+        <div className="flex gap-2">
           {enrolled ? (
             <button
               onClick={handleLearn}

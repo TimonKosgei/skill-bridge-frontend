@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { getAuthHeader } from '../utils/authUtils';
 
 const LeaderboardPage = () => {
   const [users, setUsers] = useState([]);
@@ -13,7 +14,9 @@ const LeaderboardPage = () => {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5000/leaderboard');
+        const response = await fetch('http://127.0.0.1:5000/leaderboard', {
+          headers: getAuthHeader()
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch leaderboard');
         }
@@ -33,7 +36,9 @@ const LeaderboardPage = () => {
     setSelectedUser(user);
     setIsLoadingBadges(true);
     try {
-      const response = await fetch(`http://127.0.0.1:5000/users/${user.user_id}/badges`);
+      const response = await fetch(`http://127.0.0.1:5000/users/${user.user_id}/badges`, {
+        headers: getAuthHeader()
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch badges');
       }

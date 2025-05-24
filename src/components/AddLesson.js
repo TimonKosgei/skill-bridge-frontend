@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import axios from "axios";
+import { getAuthHeader } from '../utils/authUtils';
 
 const MAX_TITLE_LENGTH = 80;
 const MAX_DESCRIPTION_LENGTH = 300;
@@ -154,7 +155,10 @@ const AddLesson = ({ courseId, onSuccess, onError }) => {
         setUploadingLessons(prev => ({ ...prev, [i]: true }));
 
         await axios.post("http://127.0.0.1:5000/lessons", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: { 
+            ...getAuthHeader(),
+            'Content-Type': 'multipart/form-data'
+          }
         });
 
         // Clear uploading state for this lesson

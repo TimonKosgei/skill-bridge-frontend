@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getAuthHeader, getAuthHeaderWithContentType } from '../utils/authUtils';
 
 const DiscussionSection = ({ courseId, userId, userUsername }) => {
   const [discussions, setDiscussions] = useState([]);
@@ -9,7 +10,9 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
   // Fetch discussions and comments
   useEffect(() => {
     // Fetch discussions
-    fetch(`http://localhost:5000/discussions?course_id=${courseId}`)
+    fetch(`http://localhost:5000/discussions?course_id=${courseId}`, {
+      headers: getAuthHeader()
+    })
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -23,7 +26,9 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
       });
 
     // Fetch comments
-    fetch("http://localhost:5000/comments")
+    fetch("http://localhost:5000/comments", {
+      headers: getAuthHeader()
+    })
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -67,7 +72,7 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
     try {
       const response = await fetch("http://localhost:5000/discussions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaderWithContentType(),
         body: JSON.stringify({
           user_id: userId,
           course_id: courseId,
@@ -97,7 +102,7 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
     try {
       const response = await fetch("http://localhost:5000/comments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaderWithContentType(),
         body: JSON.stringify({
           user_id: userId,
           discussion_id: discussionId,
@@ -128,7 +133,7 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
       for (const comment of commentsToDelete) {
         const commentResponse = await fetch("http://localhost:5000/comments", {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaderWithContentType(),
           body: JSON.stringify({ comment_id: comment.comment_id }),
         });
 
@@ -140,7 +145,7 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
       // Then delete the discussion
       const response = await fetch(`http://localhost:5000/discussions/${discussionId}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaderWithContentType(),
         body: JSON.stringify({ user_id: userId }),
       });
 
@@ -163,7 +168,7 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
     try {
       const response = await fetch("http://localhost:5000/comments", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaderWithContentType(),
         body: JSON.stringify({ comment_id: commentId }),
       });
 
@@ -220,9 +225,7 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
                           <div className="flex justify-between items-start">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                <span className="text-blue-600 text-sm font-medium">
-                                  {comment.user_username?.charAt(0)}
-                                </span>
+                                <img src={comment.user_profile_picture_url} alt={comment.user_username} className="h-8 w-8 rounded-full" />
                               </div>
                               <div className="ml-3">
                                 <p className="text-sm font-medium text-gray-900">{comment.user_username}</p>

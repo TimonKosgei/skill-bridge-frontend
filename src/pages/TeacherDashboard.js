@@ -37,6 +37,15 @@ const TeacherDashboard = () => {
     is_published: false,
     course_image: null
   });
+  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
+
+  // Function to get auth header
+  const getAuthHeader = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Authorization': `Bearer ${token}`
+    };
+  };
 
   // Decode the token to get the user ID
   useEffect(() => {
@@ -62,7 +71,11 @@ const TeacherDashboard = () => {
     if (!userId) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/users/${userId}`);
+      const response = await fetch(`http://localhost:5000/users/${userId}`, {
+        headers: {
+          ...getAuthHeader()
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch courses');
       }
@@ -96,7 +109,11 @@ const TeacherDashboard = () => {
 
     const fetchEnrollments = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/enrollments/${selectedCourse.course_id}`);
+        const response = await fetch(`http://localhost:5000/enrollments/${selectedCourse.course_id}`, {
+          headers: {
+            ...getAuthHeader()
+          }
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch enrollments');
         }
@@ -117,7 +134,11 @@ const TeacherDashboard = () => {
 
     const fetchDiscussions = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/discussions?course_id=${selectedCourse.course_id}`);
+        const response = await fetch(`http://localhost:5000/discussions?course_id=${selectedCourse.course_id}`, {
+          headers: {
+            ...getAuthHeader()
+          }
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch discussions');
         }
@@ -134,7 +155,11 @@ const TeacherDashboard = () => {
 
   // Fetch comments from the server
   useEffect(() => {
-    fetch("http://localhost:5000/comments")
+    fetch("http://localhost:5000/comments", {
+      headers: {
+        ...getAuthHeader()
+      }
+    })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -158,6 +183,7 @@ const TeacherDashboard = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeader()
         },
         body: JSON.stringify({
           ...newDiscussion,
@@ -220,6 +246,9 @@ const TeacherDashboard = () => {
         `http://localhost:5000/lessons/${editLessonData.lesson_id}`,
         {
           method: 'PATCH',
+          headers: {
+            ...getAuthHeader()
+          },
           body: formData
         }
       );
@@ -255,12 +284,9 @@ const TeacherDashboard = () => {
   
 
   const handleDeleteLesson = async () => {
-    if (!editingLesson || !window.confirm('Are you sure you want to delete this lesson? This cannot be undone.')) {
-      return;
-    }
-  
+    if (!editingLesson) return;
     setIsDeleting(true);
-  
+
     try {
       const response = await fetch(
         `http://localhost:5000/lessons/${editingLesson.lesson_id}`,
@@ -268,15 +294,16 @@ const TeacherDashboard = () => {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            ...getAuthHeader()
           },
-          body: JSON.stringify({ lesson_id: editingLesson.lesson_id }),
+          body: JSON.stringify({ user_id: userId })
         }
       );
-  
+
       if (!response.ok) {
         throw new Error('Failed to delete lesson');
       }
-  
+
       const updatedCourses = courses.map(course => {
         if (course.course_id === selectedCourse.course_id) {
           const updatedLessons = course.lessons.filter(
@@ -286,15 +313,14 @@ const TeacherDashboard = () => {
         }
         return course;
       });
-  
+
       setCourses(updatedCourses);
       setSelectedCourse(updatedCourses.find(c => c.course_id === selectedCourse.course_id));
-      
-      alert('Lesson deleted successfully!');
       setEditingLesson(null);
+      alert('Lesson deleted successfully!');
     } catch (error) {
       console.error('Error deleting lesson:', error);
-      alert('Failed to delete lesson. Please try again.');
+      alert(`Failed to delete lesson: ${error.message}`);
     } finally {
       setIsDeleting(false);
     }
@@ -302,35 +328,35 @@ const TeacherDashboard = () => {
   
 
   const handlePostComment = async (discussionId) => {
-    if (!newComment.content || !discussionId) {
-      alert("Please write a comment before posting.");
+    if (!newComment.content) {
+      alert('Please enter a comment');
       return;
     }
-  
-    const commentData = {
-      user_id: userId,
-      discussion_id: discussionId,
-      content: newComment.content,
-      comment_date: new Date().toISOString(),
-    };
-  
+
     try {
-      const response = await fetch("http://localhost:5000/comments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(commentData),
+      const response = await fetch('http://localhost:5000/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
+        body: JSON.stringify({
+          ...newComment,
+          discussion_id: discussionId,
+          user_id: userId
+        }),
       });
-  
+
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        throw new Error('Failed to post comment');
       }
-  
+
       const newCommentData = await response.json();
       setComments([...comments, newCommentData]);
       setNewComment({ discussion_id: null, content: '' });
-    } catch (error) {
-      console.error("Error posting comment:", error);
-      alert("Failed to post comment. Please try again.");
+    } catch (err) {
+      console.error('Error posting comment:', err);
+      alert('Failed to post comment. Please try again.');
     }
   };
 
@@ -403,50 +429,46 @@ const TeacherDashboard = () => {
   }, [editCourseData.course_image_preview]);
 
   const handleSaveCourse = async (updatedCourse) => {
-    if (!selectedCourse) return;
-
     setIsSaving(true);
     try {
       const formData = new FormData();
       formData.append('title', updatedCourse.title);
       formData.append('description', updatedCourse.description);
       formData.append('category', updatedCourse.category);
-      formData.append('is_published', Boolean(updatedCourse.is_published));
-      
+      formData.append('is_published', updatedCourse.is_published);
+
       if (updatedCourse.course_image) {
         formData.append('file', updatedCourse.course_image);
       }
 
-      const response = await fetch(`http://localhost:5000/courses/${selectedCourse.course_id}`, {
-        method: 'PATCH',
-        body: formData
-      });
+      const response = await fetch(
+        `http://localhost:5000/courses/${selectedCourse.course_id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            ...getAuthHeader()
+          },
+          body: formData
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to update course');
       }
 
-      const responseData = await response.json();
-      
-      setCourses(prev => prev.map(course => 
-        course.course_id === selectedCourse.course_id ? responseData.course : course
-      ));
-      
-      setSelectedCourse(responseData.course);
-      
+      const updatedCourseData = await response.json();
+      const updatedCourses = courses.map(course =>
+        course.course_id === selectedCourse.course_id ? updatedCourseData.course : course
+      );
+
+      setCourses(updatedCourses);
+      setSelectedCourse(updatedCourseData.course);
       setIsEditingCourse(false);
-      setEditCourseData({
-        title: '',
-        description: '',
-        category: '',
-        is_published: false,
-        course_image: null,
-        course_image_preview: null
-      });
+      alert('Course updated successfully!');
     } catch (error) {
       console.error('Error updating course:', error);
-      setError(error.message);
+      alert(`Failed to update course: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -462,6 +484,41 @@ const TeacherDashboard = () => {
 
   const handleAddLessonError = (error) => {
     console.error("Error adding lesson:", error);
+  };
+
+  const handleDeleteCourse = async () => {
+    if (!selectedCourse) return;
+    
+    if (!window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeletingCourse(true);
+    try {
+      const response = await fetch(
+        `http://localhost:5000/courses/${selectedCourse.course_id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            ...getAuthHeader()
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete course');
+      }
+
+      const updatedCourses = courses.filter(course => course.course_id !== selectedCourse.course_id);
+      setCourses(updatedCourses);
+      setSelectedCourse(updatedCourses.length > 0 ? updatedCourses[0] : null);
+      alert('Course deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      alert(`Failed to delete course: ${error.message}`);
+    } finally {
+      setIsDeletingCourse(false);
+    }
   };
 
   if (loading) {
@@ -575,6 +632,13 @@ const TeacherDashboard = () => {
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   Edit Course Details
+                </button>
+                <button
+                  onClick={handleDeleteCourse}
+                  disabled={isDeletingCourse}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+                >
+                  {isDeletingCourse ? 'Deleting...' : 'Delete Course'}
                 </button>
               </div>
             )}
@@ -759,9 +823,7 @@ const TeacherDashboard = () => {
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center">
                                     <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                      <span className="text-blue-600 font-medium">
-                                        {review.user_username?.charAt(0)}
-                                      </span>
+                                      <img src={review.user_profile_picture_url} alt={review.user_username} className="h-10 w-10 rounded-full object-cover" />
                                     </div>
                                     <div className="ml-3">
                                       <p className="text-sm font-medium text-gray-900">{review.user_username}</p>

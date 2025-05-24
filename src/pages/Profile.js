@@ -5,6 +5,9 @@ import SimpleCourseCard from '../components/SimpleCourseCard';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Notification from '../components/Notification';
+import BadgeNotification from '../components/BadgeNotification';
+import { getAuthHeader } from '../utils/authUtils';
+import InstructorProfile from './InstructorProfile';
 
 const ProfilePage = () => {
   const [decodedToken, setDecodedToken] = useState(null);
@@ -19,6 +22,7 @@ const ProfilePage = () => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
   const [notification, setNotification] = useState(null);
+  const [isInstructor, setIsInstructor] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -26,6 +30,10 @@ const ProfilePage = () => {
       try {
         const decoded = jwtDecode(token);
         setDecodedToken(decoded);
+        setIsInstructor(decoded.role === 'Instructor');
+        if (decoded.role === 'Instructor') {
+          setActiveTab('settings');
+        }
       } catch (error) {
         console.error('Token decoding failed:', error);
         setError('Invalid token. Please log in again.');
@@ -47,15 +55,35 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
       try {
         // Fetch user data
-        const userResponse = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}`);
+        const userResponse = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}`, {
+          headers: getAuthHeader()
+        });
         if (!userResponse.ok) throw new Error('Failed to fetch user data');
         const userData = await userResponse.json();
         setUser(userData);
 
         // Fetch badges
-        const badgesResponse = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}/badges`);
+        const badgesResponse = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}/badges`, {
+          headers: getAuthHeader()
+        });
         if (!badgesResponse.ok) throw new Error('Failed to fetch badges');
         const badgesData = await badgesResponse.json();
+        
+        // Only show notification if there are badges and the newest badge hasn't been shown before
+        if (badgesData.length > 0) {
+          const newestBadge = badgesData[badgesData.length - 1];
+          if (!newestBadge.notification_shown) {
+            setNewBadge(newestBadge);
+            // Mark the badge notification as shown
+            fetch(`http://127.0.0.1:5000/user-badges/${newestBadge.user_badge_id}/mark-shown`, {
+              method: 'PATCH',
+              headers: getAuthHeader()
+            }).catch(error => console.error('Error marking badge notification as shown:', error));
+            
+            setTimeout(() => setNewBadge(null), 5000);
+          }
+        }
+        
         setBadges(badgesData);
 
         // Populate enrolled courses from user.enrollments
@@ -65,12 +93,6 @@ const ProfilePage = () => {
             progress: enrollment.progress,
           }));
           setEnrolledCourses(courses);
-        }
-
-        if (badgesData.length > 0) {
-          const newestBadge = badgesData[badgesData.length - 1];
-          setNewBadge(newestBadge);
-          setTimeout(() => setNewBadge(null), 5000);
         }
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -130,11 +152,10 @@ const ProfilePage = () => {
     formData.append('file', file);
 
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`http://127.0.0.1:5000/users/${decodedToken.user_id}/profile-photo`, {
         method: 'PATCH',
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeader(),
         },
         body: formData,
       });
@@ -167,6 +188,12 @@ const ProfilePage = () => {
     }
   };
 
+  // Render different layouts based on user role
+  if (isInstructor) {
+    return <InstructorProfile />;
+  }
+
+  // Original student profile layout
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -181,28 +208,10 @@ const ProfilePage = () => {
 
       {/* New Badge Notification */}
       {newBadge && (
-        <div className="fixed top-4 right-4 z-50 animate-bounce">
-          <div className="flex items-start p-4 max-w-md bg-white rounded-lg shadow-xl border-l-4 border-green-500">
-            <div className={`${getTierColor(newBadge.badge.tier)} p-3 rounded-full mr-3 flex-shrink-0`}>
-              <span className="text-2xl">{newBadge.badge.emoji}</span>
-            </div>
-            <div className="flex-grow">
-              <h3 className="font-bold text-gray-900">New Badge Earned!</h3>
-              <p className="text-gray-700">{newBadge.badge.name}</p>
-              <p className="text-sm text-gray-500">{newBadge.badge.description}</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {new Date(newBadge.earned_date).toLocaleString()}
-              </p>
-            </div>
-            <button 
-              onClick={() => setNewBadge(null)}
-              className="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Close notification"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+        <BadgeNotification
+          badge={newBadge}
+          onClose={() => setNewBadge(null)}
+        />
       )}
 
       {/* Profile Header Section */}
@@ -249,28 +258,37 @@ const ProfilePage = () => {
         {/* Tab Navigation */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-md shadow-sm isolate">
-            {[
-              { id: 'courses', label: '📚 My Courses' },
-              { id: 'badges', label: '🏆 Badges' },
-              { id: 'activity', label: '📝 Activity' },
-              { id: 'settings', label: '⚙️ Settings' }
-            ].map((tab, index) => (
+            {!isInstructor ? (
+              [
+                { id: 'courses', label: '📚 My Courses' },
+                { id: 'badges', label: '🏆 Badges' },
+                { id: 'activity', label: '📝 Activity' },
+                { id: 'settings', label: '⚙️ Settings' }
+              ].map((tab, index) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-6 py-3 text-sm font-medium transition-colors ${
+                    activeTab === tab.id 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  } ${
+                    index === 0 ? 'rounded-l-lg' : 
+                    index === 3 ? 'rounded-r-lg' : 
+                    'rounded-none'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))
+            ) : (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-3 text-sm font-medium transition-colors ${
-                  activeTab === tab.id 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                } ${
-                  index === 0 ? 'rounded-l-lg' : 
-                  index === 3 ? 'rounded-r-lg' : 
-                  'rounded-none'
-                }`}
+                onClick={() => setActiveTab('settings')}
+                className="px-6 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg"
               >
-                {tab.label}
+                ⚙️ Profile Settings
               </button>
-            ))}
+            )}
           </div>
         </div>
 
@@ -512,7 +530,7 @@ const ProfilePage = () => {
                       method: 'PATCH',
                       headers: {
                         'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
+                        ...getAuthHeader(),
                       },
                       body: JSON.stringify(updatedUser),
                     });
@@ -606,7 +624,7 @@ const ProfilePage = () => {
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
-                      Bio
+                      {isInstructor ? 'About Me' : 'Bio'}
                     </label>
                     <textarea
                       id="bio"
@@ -614,10 +632,12 @@ const ProfilePage = () => {
                       defaultValue={user.bio}
                       rows="3"
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      placeholder="Tell us about yourself..."
+                      placeholder={isInstructor ? "Write about your teaching experience, expertise, and what students can expect from your courses..." : "Tell us about yourself..."}
                     />
                     <p className="mt-1 text-sm text-gray-500">
-                      Brief description for your profile. Maximum 200 characters.
+                      {isInstructor 
+                        ? "This description will be visible to your students. Share your teaching philosophy, expertise, and what makes your courses unique."
+                        : "Brief description for your profile. Maximum 200 characters."}
                     </p>
                   </div>
                 </div>
@@ -650,7 +670,6 @@ const ProfilePage = () => {
           )}
         </div>
       </div>
-
     </div>
   );
 };

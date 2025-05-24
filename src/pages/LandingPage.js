@@ -11,7 +11,7 @@ const LandingPage = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5000/courses'); // Replace with your backend endpoint
+        const response = await fetch('http://127.0.0.1:5000/public/courses');
         if (!response.ok) {
           throw new Error('Failed to fetch courses');
         }
@@ -21,10 +21,10 @@ const LandingPage = () => {
         const sortedCourses = data
           .map((course) => ({
             ...course,
-            enrollmentCount: course.enrollments ? course.enrollments.length : 0, // Add enrollmentCount
+            enrollmentCount: course.enrollments ? course.enrollments.length : 0,
           }))
-          .sort((a, b) => b.enrollmentCount - a.enrollmentCount) // Sort by enrollmentCount
-          .slice(0, 3); // Pick the top 3 courses
+          .sort((a, b) => b.enrollmentCount - a.enrollmentCount)
+          .slice(0, 3);
         setTopCourses(sortedCourses);
       } catch (err) {
         setError(err.message);
@@ -35,12 +35,12 @@ const LandingPage = () => {
 
     const fetchReviews = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5000/lessonreviews'); // Fetch top reviews
+        const response = await fetch('http://127.0.0.1:5000/public/lessonreviews');
         if (!response.ok) {
           throw new Error('Failed to fetch reviews');
         }
         const data = await response.json();
-        setReviews(data); // Set the fetched reviews
+        setReviews(data);
       } catch (err) {
         console.error('Error fetching reviews:', err);
       }
@@ -228,7 +228,7 @@ const LandingPage = () => {
                   <div className="flex items-center">
                     <img
                       className="h-12 w-12 rounded-full"
-                      src={review.user_profile_picture || 'https://via.placeholder.com/150'}
+                      src={review.user_profile_picture_url}
                       alt={review.user_username}
                     />
                     <div className="ml-4">

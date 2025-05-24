@@ -92,9 +92,9 @@ const Header = () => {
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center">
-                  {user?.profile_picture ? (
+                  {user?.profile_picture_url ? (
                     <img
-                      src={user.profile_picture}
+                      src={user.profile_picture_url}
                       alt={user.username}
                       className="w-9 h-9 rounded-full object-cover"
                     />

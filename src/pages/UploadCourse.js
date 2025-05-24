@@ -4,6 +4,7 @@ import AddLesson from "../components/AddLesson";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import { getAuthHeader } from '../utils/authUtils';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 10MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
@@ -23,7 +24,8 @@ const UploadCourse = () => {
     title: "", 
     description: "", 
     category: "", 
-    image: null 
+    image: null,
+    is_published: false 
   });
   const [file, setFile] = useState(null);
   const [numLessons, setNumLessons] = useState(1);
@@ -146,13 +148,17 @@ const UploadCourse = () => {
     formData.append("title", course.title);
     formData.append("description", course.description);
     formData.append("category", course.category);
+    formData.append("is_published", course.is_published);
 
     setIsSubmitting(true);
     setError(null);
 
     try {
       const response = await axios.post("http://127.0.0.1:5000/courses", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { 
+          ...getAuthHeader(),
+          "Content-Type": "multipart/form-data" 
+        },
         onUploadProgress: (progressEvent) => {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           setUploadProgress(progress);
@@ -217,7 +223,10 @@ const UploadCourse = () => {
         formData.append("course_id", courseId);
 
         await axios.post("http://127.0.0.1:5000/lessons", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: { 
+            ...getAuthHeader(),
+            "Content-Type": "multipart/form-data" 
+          },
           onUploadProgress: (progressEvent) => {
             const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setUploadProgress(progress);
@@ -320,6 +329,19 @@ const UploadCourse = () => {
                     onChange={handleImageChange}
                     required
                   />
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="is_published"
+                    checked={course.is_published}
+                    onChange={(e) => setCourse({ ...course, is_published: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label className="ml-2 block text-sm text-gray-900">
+                    Publish Course
+                  </label>
                 </div>
 
                 <button
