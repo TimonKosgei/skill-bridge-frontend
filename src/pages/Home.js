@@ -115,18 +115,14 @@ const Home = () => {
       <Header />
       <div className="min-h-screen bg-gray-50 px-6 py-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Explore Our Courses</h1>
-          <p className="mt-2 text-gray-600">Find the perfect course to advance your skills</p>
+        <div className="mb-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Explore Our Courses</h1>
+          
+          <p className="mt-2 text-sm text-gray-600">Find the perfect course to advance your skills</p>
         </div>
-
-        {/* Search Bar */}
-        <div className="mb-8">
-          <SearchBar onSearch={handleSearch} />
-        </div>
-
+        <SearchBar onSearch={handleSearch} />
         {/* Category Navigation */}
-        <div className="mb-8 overflow-x-auto">
+        <div className="mb-1 overflow-x-auto">
           <div className="flex space-x-4 pb-2">
             {categories.map(category => {
               const categoryCourses = filteredCourses.filter(course => course.category === category);
@@ -149,7 +145,7 @@ const Home = () => {
         {currentUserId && enrolledCourses.length > 0 && (
           <section className="mb-12">
             <h2 className="text-xl font-semibold mb-6 text-gray-800">My Enrolled Courses</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {enrolledCourses.map(course => (
                 <CourseCard
                   key={course.id}
@@ -173,7 +169,7 @@ const Home = () => {
               className="mb-12 scroll-mt-20"
             >
               <h2 className="text-xl font-semibold mb-6 text-gray-800">{category}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {categoryCourses.map(course => (
                   <CourseCard
                     key={course.id}

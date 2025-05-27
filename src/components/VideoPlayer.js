@@ -1,31 +1,8 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import axios from "axios";
-import { getAuthHeader } from '../utils/authUtils';
 
 const VideoPlayer = ({ url }) => {
   const playerRef = useRef(null);
-  const [signedUrl, setSignedUrl] = useState(null);
-
-  // Fetch signed URL when component mounts or URL changes
-  useEffect(() => {
-    const fetchSignedUrl = async () => {
-      try {
-        const response = await axios.post(
-          "http://localhost:5000/video-access",
-          { video_url: url },
-          { headers: getAuthHeader() }
-        );
-        setSignedUrl(response.data.signed_url);
-      } catch (error) {
-        console.error("Error fetching signed URL:", error);
-      }
-    };
-
-    if (url) {
-      fetchSignedUrl();
-    }
-  }, [url]);
 
   // Disable right-click
   useEffect(() => {
@@ -61,8 +38,8 @@ const VideoPlayer = ({ url }) => {
     };
   }, []);
 
-  if (!signedUrl) {
-    return <div className="bg-black p-4 rounded-lg shadow-lg">Loading video...</div>;
+  if (!url) {
+    return <div className="bg-black p-4 rounded-lg shadow-lg text-white">No video URL provided</div>;
   }
 
   return (
@@ -72,7 +49,7 @@ const VideoPlayer = ({ url }) => {
     >
       <ReactPlayer
         ref={playerRef}
-        url={signedUrl}
+        url={url}
         controls
         width="100%"
         height="100%"
@@ -86,7 +63,6 @@ const VideoPlayer = ({ url }) => {
             },
           },
         }}
-        onError={(e) => console.error('Video player error:', e)}
       />
     </div>
   );

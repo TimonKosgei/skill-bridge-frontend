@@ -197,7 +197,7 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
                 </div>
                 <div className="ml-4 flex-1">
                   <div className="flex justify-between items-start">
-                    <h4 className="text-lg font-medium text-gray-900">{discussion.title}</h4>
+                    <h4 className="text-base font-medium text-gray-900">{discussion.title}</h4>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-500">
                         {new Date(discussion.discussion_date).toLocaleDateString()}
@@ -214,7 +214,7 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
                       )}
                     </div>
                   </div>
-                  <p className="mt-1 text-gray-600">{discussion.content}</p>
+                  <p className="mt-1 text-sm text-gray-600">{discussion.content}</p>
                   
                   {/* Comments */}
                   <div className="mt-4 space-y-3">
@@ -252,21 +252,18 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
                       ))}
                   </div>
 
-                  {/* Add Comment */}
+                  {/* New Comment Form */}
                   <div className="mt-4">
                     <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows="2"
                       placeholder="Write a comment..."
                       value={newComment.discussion_id === discussion.discussion_id ? newComment.content : ''}
-                      onChange={(e) => setNewComment({ 
-                        discussion_id: discussion.discussion_id, 
-                        content: e.target.value 
-                      })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      rows={2}
+                      onChange={(e) => setNewComment({ discussion_id: discussion.discussion_id, content: e.target.value })}
                     />
                     <button
                       onClick={() => handlePostComment(discussion.discussion_id)}
-                      className="mt-2 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                      className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       Post Comment
                     </button>
@@ -277,40 +274,32 @@ const DiscussionSection = ({ courseId, userId, userUsername }) => {
           ))}
         </div>
       ) : (
-        <p className="text-gray-500">No discussions available.</p>
+        <p className="text-sm text-gray-500">No discussions yet. Start one below!</p>
       )}
 
       {/* New Discussion Form */}
-      <div className="mt-8 pt-6 border-t border-gray-200">
-        <h4 className="text-lg font-semibold text-gray-900 mb-3">Start New Discussion</h4>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-            <input
-              type="text"
-              placeholder="Discussion title"
-              value={newDiscussion.title}
-              onChange={(e) => setNewDiscussion({ ...newDiscussion, title: e.target.value })}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
-            <textarea
-              placeholder="What would you like to discuss?"
-              value={newDiscussion.content}
-              onChange={(e) => setNewDiscussion({ ...newDiscussion, content: e.target.value })}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={4}
-            />
-          </div>
-          <button
-            onClick={handleStartDiscussion}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Start Discussion
-          </button>
-        </div>
+      <div className="mt-6 border border-gray-200 rounded-lg p-4">
+        <h4 className="text-base font-medium text-gray-900 mb-3">Start a New Discussion</h4>
+        <input
+          type="text"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Discussion Title"
+          value={newDiscussion.title}
+          onChange={(e) => setNewDiscussion({ ...newDiscussion, title: e.target.value })}
+        />
+        <textarea
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          rows="4"
+          placeholder="Discussion Content"
+          value={newDiscussion.content}
+          onChange={(e) => setNewDiscussion({ ...newDiscussion, content: e.target.value })}
+        />
+        <button
+          onClick={handleStartDiscussion}
+          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Start Discussion
+        </button>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 import ReactPlayer from 'react-player';
 import Header from '../components/Header';
 import { getAuthHeader } from '../utils/authUtils';
+import VideoPlayer from '../components/VideoPlayer';
 
 const CoursePreview = () => {
   const navigate = useNavigate();
@@ -115,6 +116,33 @@ const CoursePreview = () => {
 
   const courseRating = calculateCourseRating();
 
+  // Helper functions for ratings and reviews
+  const calculateAverageRating = (lessons) => {
+    if (!lessons || lessons.length === 0) return 0;
+    const allReviews = lessons.flatMap(lesson => lesson.lesson_reviews || []);
+    if (allReviews.length === 0) return 0;
+    const totalRating = allReviews.reduce((sum, review) => sum + review.rating, 0);
+    return (totalRating / allReviews.length).toFixed(1);
+  };
+
+  const calculateTotalReviews = (lessons) => {
+    if (!lessons || lessons.length === 0) return 0;
+    return lessons.reduce((total, lesson) => total + (lesson.lesson_reviews?.length || 0), 0);
+  };
+
+  const getRecentReviews = (lessons) => {
+    if (!lessons || lessons.length === 0) return [];
+    const allReviews = lessons.flatMap(lesson => 
+      (lesson.lesson_reviews || []).map(review => ({
+        ...review,
+        lesson_title: lesson.title
+      }))
+    );
+    return allReviews
+      .sort((a, b) => new Date(b.review_date) - new Date(a.review_date))
+      .slice(0, 5); // Get only the 5 most recent reviews
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header user={user} />
@@ -135,287 +163,146 @@ const CoursePreview = () => {
         )}
 
         {/* Course Header Section */}
-        <div className="flex flex-col md:flex-row gap-8 mb-10">
-          {/* Course Image */}
-          <div className="flex-1 min-w-[300px] rounded-xl overflow-hidden shadow-lg h-[300px] bg-white">
-            <img 
-              src={course.course_image_url} 
-              alt={course.title} 
-              className="w-full h-full object-cover" 
-            />
-          </div>
-          
-          {/* Course Info */}
-          <div className="flex-1">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-3 leading-tight">
-                {course.title}
-              </h1>
-              <p className="text-gray-600 mb-5 leading-relaxed">
-                {course.description}
-              </p>
-              
-              <div className="flex flex-wrap gap-4">
-                <div className="inline-flex items-center px-4 py-2 rounded-full bg-gray-50 text-sm font-medium text-gray-800">
-                  ⏱️ {calculateTotalDuration()}
-                </div>
-                
-                {courseRating && (
-                  <div className="inline-flex items-center px-4 py-2 rounded-full bg-gray-50 text-sm font-medium text-gray-800">
-                    <span className="text-yellow-400">★</span>
-                    {courseRating.toFixed(1)} ({lessons.flatMap(l => l.lesson_reviews || []).length} reviews)
-                  </div>
-                )}
-              </div>
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+          <div className="flex flex-col md:flex-row">
+            {/* Course Image */}
+            <div className="md:w-1/2 h-[300px] md:h-[400px]">
+              <img 
+                src={course.course_image_url} 
+                alt={course.title} 
+                className="w-full h-full object-cover" 
+              />
             </div>
             
-            {/* Instructor Preview */}
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-              <img
-                src={instructor.profile_picture_url}
-                alt={instructor.name}
-                className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
-              />
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Instructor</p>
-                <h3 className="text-base font-semibold text-gray-800">
-                  {instructor.first_name} {instructor.last_name}
-                </h3>
+            {/* Course Info */}
+            <div className="md:w-1/2 p-6 md:p-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">{course.title}</h1>
+              <p className="text-gray-600 mb-6">{course.description}</p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center text-gray-700">
+                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">{course.lessons?.length || 0} Lessons</span>
+                </div>
+                
+                <div className="flex items-center text-gray-700">
+                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">{calculateTotalDuration(course.lessons)}</span>
+                </div>
+                
+                <div className="flex items-center text-gray-700">
+                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">{course.enrollments?.length || 0} Students Enrolled</span>
+                </div>
               </div>
+
+              {!isInstructor && (
+                <button
+                  onClick={handleEnroll}
+                  disabled={isEnrolled}
+                  className={`mt-6 w-full px-6 py-3 rounded-lg text-white font-medium ${
+                    isEnrolled 
+                      ? 'bg-green-600 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {isEnrolled ? 'Enrolled' : 'Enroll Now'}
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200 pb-2">
-          {['lessons', 'instructor', 'discussions'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 text-sm font-medium rounded-lg transition-colors ${
-                activeTab === tab 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              {tab === "lessons" ? "📖 Lessons" : 
-               tab === "instructor" ? "👨‍🏫 Instructor" : 
-               "💬 Discussions"}
-            </button>
-          ))}
-        </div>
+        {/* Course Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Lessons List */}
+          <div className="lg:col-span-2">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Course Content</h2>
+            <div className="space-y-2">
+              {course.lessons?.map((lesson, index) => (
+                <div 
+                  key={lesson.lesson_id}
+                  className="flex items-start py-4 border-b border-gray-200 last:border-0"
+                >
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                    {index + 1}
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <h3 className="text-lg font-medium text-gray-900">{lesson.title}</h3>
+                    <p className="text-gray-600 mt-1">{lesson.description}</p>
+                    <div className="mt-2 flex items-center text-sm text-gray-500">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {Math.floor(lesson.duration / 60)}m {lesson.duration % 60}s
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {/* Tab Content */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
-          {activeTab === "lessons" && (
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Course Lessons
-              </h2>
-              
-              <div className="space-y-5">
-                {lessons.map((lesson, index) => (
-                  <div
-                    key={index}
-                    className="border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md"
-                  >
-                    {/* Lesson Header */}
-                    <div className="flex items-center p-5 bg-gray-50 cursor-pointer">
-                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-semibold mr-4 shrink-0">
-                        {index + 1}
+          {/* Course Stats and Reviews */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Course Stats</h2>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Average Rating</span>
+                  <div className="flex items-center">
+                    <span className="text-2xl font-bold text-yellow-500">★</span>
+                    <span className="ml-1 text-gray-900 font-medium">
+                      {calculateAverageRating(course.lessons)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Total Reviews</span>
+                  <span className="text-gray-900 font-medium">
+                    {calculateTotalReviews(course.lessons)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Reviews */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Reviews</h2>
+              <div className="space-y-4">
+                {getRecentReviews(course.lessons).map((review) => (
+                  <div key={review.review_id} className="border-b border-gray-200 pb-4 last:border-0">
+                    <div className="flex items-center mb-2">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <svg
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < review.rating ? 'text-yellow-400' : 'text-gray-300'
+                            }`}
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                          {lesson.title}
-                        </h4>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span>{formatDuration(lesson.duration)}</span>
-                          {lesson.lesson_reviews?.length > 0 && (
-                            <span className="flex items-center gap-1">
-                              <span className="text-yellow-400">★</span>
-                              {(lesson.lesson_reviews.reduce((sum, review) => sum + review.rating, 0) / lesson.lesson_reviews.length).toFixed(1)}
-                              <span>({lesson.lesson_reviews.length})</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                      <span className="ml-2 text-sm text-gray-600">
+                        {new Date(review.review_date).toLocaleDateString()}
+                      </span>
                     </div>
-                    
-                    {/* Lesson Content */}
-                    <div className="p-5">
-                      <p className="text-gray-600 mb-5 leading-relaxed">
-                        {lesson.description}
-                      </p>
-                      
-                      {/* Video Preview */}
-                      <div className="w-full h-96 rounded-lg overflow-hidden mb-5 bg-black">
-                        <ReactPlayer
-                          url={lesson.video_url}
-                          controls={true}
-                          width="100%"
-                          height="100%"
-                          className="rounded-lg"
-                        />
-                      </div>
-                      
-                      {/* Lesson Reviews Section */}
-                      {lesson.lesson_reviews?.length > 0 && (
-                        <div>
-                          <div className="flex justify-between items-center mb-4">
-                            <h5 className="text-lg font-semibold text-gray-900">
-                              Student Feedback
-                            </h5>
-                            <span className="text-sm text-gray-500">
-                              {lesson.lesson_reviews.length} reviews
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-4">
-                            {lesson.lesson_reviews.slice(0, visibleReviews[lesson.lesson_id] || 3).map((review, idx) => (
-                              <div 
-                                key={idx} 
-                                className="p-4 border border-gray-100 rounded-lg bg-gray-50"
-                              >
-                                <div className="flex justify-between items-center mb-3">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-semibold text-sm">
-                                      {review.user_username.charAt(0).toUpperCase()}
-                                    </div>
-                                    <span className="font-semibold text-gray-800">
-                                      {review.user_username}
-                                    </span>
-                                  </div>
-                                  <span className="text-yellow-400">
-                                    {'★'.repeat(review.rating) + '☆'.repeat(5 - review.rating)}
-                                  </span>
-                                </div>
-                                <p className="text-gray-600 leading-relaxed">
-                                  {review.comment}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                          
-                          {lesson.lesson_reviews.length > (visibleReviews[lesson.lesson_id] || 3) && (
-                            <button
-                              onClick={() => handleLoadMoreReviews(lesson.lesson_id)}
-                              className="mt-5 px-5 py-2 border border-blue-500 text-blue-600 rounded-lg font-medium flex items-center gap-2 mx-auto hover:bg-blue-50 transition-colors"
-                            >
-                              <span>Show More Reviews</span>
-                              <span>↓</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <p className="text-gray-700">{review.comment}</p>
                   </div>
                 ))}
               </div>
             </div>
-          )}
-
-          {activeTab === "instructor" && (
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                About the Instructor
-              </h2>
-              <div className="flex flex-col md:flex-row gap-8">
-                <div className="md:w-60 flex flex-col items-center gap-4">
-                  <img 
-                    src={instructor.profile_picture_url} 
-                    alt={instructor.name} 
-                    className="w-48 h-48 rounded-full object-cover border-4 border-gray-200"
-                  />
-                  <h3 className="text-xl font-semibold text-gray-900 text-center">
-                    {instructor.first_name} {instructor.last_name}
-                  </h3>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                    Biography
-                  </h4>
-                  <p className="text-gray-600 mb-6 leading-relaxed">
-                    {instructor.bio || "No biography available."}
-                  </p>
-                  
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                    Teaching Style
-                  </h4>
-                  <p className="text-gray-600 leading-relaxed">
-                    {instructor.teaching_style || "No information about teaching style."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "discussions" && (
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Course Discussions
-              </h2>
-              
-              {discussions.length > 0 ? (
-                <div className="space-y-4">
-                  {discussions.map((discussion, index) => (
-                    <div 
-                      key={index} 
-                      className="p-6 border border-gray-100 rounded-xl bg-gray-50"
-                    >
-                      <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                        {discussion.title}
-                      </h4>
-                      <p className="text-gray-600 mb-4 leading-relaxed">
-                        {discussion.content}
-                      </p>
-                      <div className="flex items-center gap-4">
-                        <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-semibold text-sm">
-                          {discussion.user_username.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 leading-tight">
-                            Posted by <span className="font-semibold text-gray-700">{discussion.user_username}</span>
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(discussion.discussion_date).toLocaleDateString('en-US', { 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-10 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-                  <p className="text-gray-500 mb-4">
-                    No discussions yet for this course.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Enroll Section - Only show for non-instructors */}
-        {!isEnrolled && !isInstructor && (
-          <div className="mt-12 text-center p-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
-              Ready to start learning?
-            </h3>
-            <p className="text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
-              Enroll now to get full access to all course materials, including video lessons, downloadable resources, and community discussions.
-            </p>
-            <button
-              onClick={handleEnroll}
-              className="px-10 py-4 bg-blue-600 text-white rounded-lg font-semibold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all transform hover:-translate-y-0.5"
-            >
-              Enroll Now
-            </button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Footer - Matching the landing page */}

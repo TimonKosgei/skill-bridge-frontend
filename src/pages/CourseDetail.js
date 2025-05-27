@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import Header from '../components/Header';
-import ReactPlayer from 'react-player';
+import VideoPlayer from '../components/VideoPlayer';
 import { useParams } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import CompletionCelebration from '../components/CompletionCelebration';
@@ -210,7 +210,7 @@ const CourseDetail = () => {
       <div className="min-h-screen bg-gray-50 p-6 max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
-          <div className="w-full lg:w-1/4 bg-white p-6 rounded-lg shadow-md">
+          <div className="w-full lg:w-1/4 bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Course Progress</h3>
             
             {enrollmentDetails && (
@@ -255,15 +255,9 @@ const CourseDetail = () => {
           {/* Main Content */}
           <div className="w-full lg:w-3/4">
             {/* Video Player */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <ReactPlayer 
-                ref={video}
-                onProgress={handleProgress}
-                url={currentLesson?.video_url}  
-                width="100%"
-                height="450px"
-                controls
-                className="react-player"
+            <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+              <VideoPlayer 
+                url={currentLesson?.video_url}
               />
             </div>
 
@@ -273,21 +267,36 @@ const CourseDetail = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center ${
                     activeTab === tab
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  {tab === "lesson" ? "📖 Lesson" : 
-                   tab === "teacher" ? "👨‍🏫 Instructor" : 
-                   tab === "reviews" ? "⭐ Reviews" : "💬 Discussions"}
+                  {tab === "lesson" ? (
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  ) : tab === "teacher" ? (
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  ) : tab === "reviews" ? (
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  )}
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
               ))}
             </div>
 
             {/* Tab Content */}
-            <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+            <div className="mt-6 bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
               {activeTab === "lesson" && (
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -394,7 +403,7 @@ const CourseDetail = () => {
                               key={star}
                               type="button"
                               onClick={() => setNewReview({ ...newReview, rating: star })}
-                              className="text-2xl focus:outline-none"
+                              className="text-2xl focus:outline-none hover:text-yellow-500 transition-colors"
                             >
                               <span className={newReview.rating >= star ? 'text-yellow-400' : 'text-gray-300'}>
                                 ★
@@ -444,7 +453,7 @@ const CourseDetail = () => {
                             alert("Please fill out all fields and select a rating.");
                           }
                         }}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Submit Review
                       </button>

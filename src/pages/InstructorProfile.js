@@ -4,27 +4,6 @@ import { jwtDecode } from 'jwt-decode';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Notification from '../components/Notification';
 import { getAuthHeader } from '../utils/authUtils';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 const InstructorProfile = () => {
   const [decodedToken, setDecodedToken] = useState(null);
@@ -33,12 +12,6 @@ const InstructorProfile = () => {
   const [user, setUser] = useState({});
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [stats, setStats] = useState({
-    totalCourses: 0,
-    totalStudents: 0,
-    averageRating: 0
-  });
-  const [enrollmentHistory, setEnrollmentHistory] = useState([]);
   const fileInputRef = useRef(null);
   const [notification, setNotification] = useState(null);
 
@@ -75,68 +48,6 @@ const InstructorProfile = () => {
         if (!userResponse.ok) throw new Error('Failed to fetch user data');
         const userData = await userResponse.json();
         setUser(userData);
-
-        // Fetch instructor's courses
-        const coursesResponse = await fetch('http://127.0.0.1:5000/courses', {
-          headers: getAuthHeader()
-        });
-        if (!coursesResponse.ok) throw new Error('Failed to fetch courses');
-        const coursesData = await coursesResponse.json();
-
-        // Calculate stats
-        const totalCourses = coursesData.length;
-        const totalStudents = coursesData.reduce((sum, course) => sum + (course.enrollments?.length || 0), 0);
-        
-        // Calculate average rating across all courses and lessons
-        const allRatings = coursesData.flatMap(course => 
-          course.lessons?.flatMap(lesson => 
-            lesson.lesson_reviews?.map(review => review.rating) || []
-          ) || []
-        );
-        
-        const averageRating = allRatings.length > 0 
-          ? (allRatings.reduce((sum, rating) => sum + rating, 0) / allRatings.length).toFixed(1)
-          : 0;
-
-        setStats({
-          totalCourses,
-          totalStudents,
-          averageRating
-        });
-
-        // Process enrollment history
-        const enrollments = coursesData.flatMap(course => 
-          course.enrollments?.map(enrollment => ({
-            date: new Date(enrollment.enrollment_date),
-            courseTitle: course.title
-          })) || []
-        ).sort((a, b) => a.date - b.date);
-
-        // Group enrollments by day and calculate cumulative totals
-        const dailyEnrollments = enrollments.reduce((acc, enrollment) => {
-          const dayStr = enrollment.date.toLocaleDateString('default', { 
-            day: 'numeric',
-            month: 'short'
-          });
-          if (!acc[dayStr]) {
-            acc[dayStr] = { new: 0, total: 0 };
-          }
-          acc[dayStr].new += 1;
-          return acc;
-        }, {});
-
-        // Calculate cumulative totals
-        let runningTotal = 0;
-        Object.keys(dailyEnrollments).forEach(day => {
-          runningTotal += dailyEnrollments[day].new;
-          dailyEnrollments[day].total = runningTotal;
-        });
-
-        setEnrollmentHistory(Object.entries(dailyEnrollments).map(([day, data]) => ({
-          day,
-          new: data.new,
-          total: data.total
-        })));
 
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -264,131 +175,6 @@ const InstructorProfile = () => {
                   <p className="text-gray-600 whitespace-pre-wrap">
                     {user.bio || "Share your teaching experience, expertise, and what students can expect from your courses..."}
                   </p>
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Teaching Stats</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Total Courses</span>
-                        <span className="font-semibold text-blue-600">{stats.totalCourses}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Total Students</span>
-                        <span className="font-semibold text-green-600">{stats.totalStudents}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Average Rating</span>
-                        <span className="font-semibold text-yellow-600">
-                          {stats.averageRating > 0 ? `${stats.averageRating} ★` : '-'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Student Enrollment History</h3>
-                    {enrollmentHistory.length > 0 ? (
-                      <Line
-                        data={{
-                          labels: enrollmentHistory.map(item => item.day),
-                          datasets: [
-                            {
-                              label: 'New Enrollments',
-                              data: enrollmentHistory.map(item => item.new),
-                              borderColor: 'rgb(59, 130, 246)',
-                              backgroundColor: 'transparent',
-                              borderWidth: 2,
-                              pointRadius: 0,
-                              pointHoverRadius: 4,
-                              tension: 0.4,
-                              yAxisID: 'y'
-                            },
-                            {
-                              label: 'Total Enrollments',
-                              data: enrollmentHistory.map(item => item.total),
-                              borderColor: 'rgb(16, 185, 129)',
-                              backgroundColor: 'transparent',
-                              borderWidth: 2,
-                              pointRadius: 0,
-                              pointHoverRadius: 4,
-                              tension: 0.4,
-                              yAxisID: 'y1'
-                            }
-                          ]
-                        }}
-                        options={{
-                          responsive: true,
-                          interaction: {
-                            mode: 'index',
-                            intersect: false,
-                          },
-                          plugins: {
-                            legend: {
-                              position: 'top',
-                            },
-                            tooltip: {
-                              callbacks: {
-                                label: function(context) {
-                                  let label = context.dataset.label || '';
-                                  if (label) {
-                                    label += ': ';
-                                  }
-                                  if (context.parsed.y !== null) {
-                                    label += context.parsed.y + ' students';
-                                  }
-                                  return label;
-                                }
-                              }
-                            }
-                          },
-                          scales: {
-                            x: {
-                              ticks: {
-                                maxRotation: 45,
-                                minRotation: 45
-                              },
-                              grid: {
-                                display: false
-                              }
-                            },
-                            y: {
-                              type: 'linear',
-                              display: true,
-                              position: 'left',
-                              title: {
-                                display: true,
-                                text: 'New Enrollments'
-                              },
-                              beginAtZero: true,
-                              ticks: {
-                                stepSize: 1
-                              },
-                              grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                              }
-                            },
-                            y1: {
-                              type: 'linear',
-                              display: true,
-                              position: 'right',
-                              title: {
-                                display: true,
-                                text: 'Total Enrollments'
-                              },
-                              beginAtZero: true,
-                              grid: {
-                                drawOnChartArea: false
-                              }
-                            }
-                          }
-                        }}
-                      />
-                    ) : (
-                      <p className="text-gray-500 text-center py-4">No enrollment data available</p>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>

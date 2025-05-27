@@ -126,7 +126,7 @@ const CourseCard = ({
       onMouseLeave={() => setHovered(false)}
     >
       {/* Course Image */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-36 overflow-hidden">
         <img 
           src={course_image_url} 
           alt={title} 
@@ -134,62 +134,62 @@ const CourseCard = ({
             hovered ? 'scale-105' : 'scale-100'
           }`}
         />
-        <div className="absolute bottom-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+        <div className="absolute bottom-2 left-2 bg-blue-600 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
           {duration()}
         </div>
         {category && (
-          <div className="absolute top-3 right-3 bg-gray-800 text-white px-3 py-1 rounded-full text-sm font-semibold">
+          <div className="absolute top-2 right-2 bg-gray-800 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
             {category}
           </div>
         )}
       </div>
 
       {/* Course Content */}
-      <div className="p-4">
-        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+      <div className="p-3">
+        <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-2">
           {title}
         </h3>
         
-        <p className="text-gray-600 mb-4 line-clamp-3">
+        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
           {description}
         </p>
         
-        <div className="flex items-center mb-4">
-          <div className={`w-8 h-8 rounded-full ${
+        <div className="flex items-center mb-2">
+          <div className={`w-6 h-6 rounded-full ${
             instructor.profile_picture_url ? 'bg-cover bg-center' : 'bg-gray-200'
           }`} style={{
             backgroundImage: instructor.profile_picture_url ? `url(${instructor.profile_picture_url})` : 'none'
           }} />
-          <span className="ml-3 text-gray-700">
+          <span className="ml-2 text-xs text-gray-700">
             {instructor.first_name} {instructor.last_name}
           </span>
         </div>
 
         {/* Rating */}
-        <div className="mb-4">
+        <div className="mb-2">
           {rating !== null ? (
             <div className="flex items-center">
-              <span className="text-gray-900 font-semibold mr-2">{rating.toFixed(1)}</span>
+              <span className="text-gray-900 text-xs font-semibold mr-1">{rating.toFixed(1)}</span>
               {renderStars(rating)}
             </div>
           ) : (
-            <span className="text-gray-500 text-sm">No ratings yet</span>
+            <span className="text-gray-500 text-xs">No ratings yet</span>
           )}
         </div>
 
         {/* Progress (if enrolled) */}
         {enrolled && (
-          <div className="mb-4">
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+          <div className="mb-2">
+            <div className="w-full bg-gray-200 rounded-full h-1.5 mb-0.5">
               <div 
-                className="bg-blue-600 h-2 rounded-full" 
+                className="bg-blue-600 h-1.5 rounded-full" 
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
-            <div className="flex justify-between text-sm text-gray-600">
+            <div className="flex justify-between text-xs text-gray-600">
               <span>{progress}% Complete</span>
               {enrollmentDetails.enrollment_date && (
-                <span>Enrolled on {new Date(enrollmentDetails.enrollment_date).toLocaleDateString()}</span>
+                <span>Enrolled {new Date(enrollmentDetails.enrollment_date).toLocaleDateString()}</span>
               )}
             </div>
           </div>
@@ -200,14 +200,14 @@ const CourseCard = ({
           {enrolled ? (
             <button
               onClick={handleLearn}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium transition-colors"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-3 rounded-md text-sm font-medium transition-colors"
             >
               Continue Learning
             </button>
           ) : (
             <button
               onClick={handleEnroll}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium transition-colors"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-3 rounded-md text-sm font-medium transition-colors"
             >
               Enroll Now
             </button>
@@ -215,7 +215,7 @@ const CourseCard = ({
           
           <button
             onClick={handleViewCourse}
-            className="bg-white hover:bg-gray-50 text-blue-600 border border-blue-600 py-2 px-4 rounded-md font-medium transition-colors"
+            className="bg-white hover:bg-gray-50 text-blue-600 border border-blue-600 py-1.5 px-3 rounded-md text-sm font-medium transition-colors"
           >
             Preview
           </button>

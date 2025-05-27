@@ -252,11 +252,11 @@ const UploadCourse = () => {
         )}
         {/* Header Section */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
             Upload New Course
           </h1>
-          <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500">
-            Create and publish your course to share with students
+          <p className="mt-3 max-w-2xl mx-auto text-lg text-gray-500">
+            Create and upload your course content to share with students
           </p>
         </div>
 
@@ -393,7 +393,9 @@ const UploadCourse = () => {
           {/* Lesson Form */}
           {courseId && (
             <div className="mt-12 pt-8 border-t border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Add Lessons</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+                Course Lessons
+              </h2>
               <AddLesson
                 courseId={courseId}
                 onSuccess={() => {

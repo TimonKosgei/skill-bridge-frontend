@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import CourseEditForm from '../components/CourseEditForm';
 import AddLesson from '../components/AddLesson';
 import DiscussionSection from '../components/DiscussionSection';
+import EnrollmentChart from '../components/EnrollmentChart';
 
 const TeacherDashboard = () => {
   const [userId, setUserId] = useState(null);
@@ -38,6 +39,13 @@ const TeacherDashboard = () => {
     course_image: null
   });
   const [isDeletingCourse, setIsDeletingCourse] = useState(false);
+  const [stats, setStats] = useState({
+    totalCourses: 0,
+    totalStudents: 0,
+    averageRating: 0
+  });
+  const [showEnrollmentChart, setShowEnrollmentChart] = useState(false);
+  const [enrollmentHistory, setEnrollmentHistory] = useState([]);
 
   // Function to get auth header
   const getAuthHeader = () => {
@@ -88,6 +96,61 @@ const TeacherDashboard = () => {
         setCourses(data.courses);
         setSelectedCourse(data.courses[0]);
         setError(null);
+
+        // Calculate stats
+        const totalCourses = data.courses.length;
+        const totalStudents = data.courses.reduce((sum, course) => sum + (course.enrollments?.length || 0), 0);
+        
+        // Calculate average rating across all courses and lessons
+        const allRatings = data.courses.flatMap(course => 
+          course.lessons?.flatMap(lesson => 
+            lesson.lesson_reviews?.map(review => review.rating) || []
+          ) || []
+        );
+        
+        const averageRating = allRatings.length > 0 
+          ? (allRatings.reduce((sum, rating) => sum + rating, 0) / allRatings.length).toFixed(1)
+          : 0;
+
+        setStats({
+          totalCourses,
+          totalStudents,
+          averageRating
+        });
+
+        // Process enrollment history
+        const enrollments = data.courses.flatMap(course => 
+          course.enrollments?.map(enrollment => ({
+            date: new Date(enrollment.enrollment_date),
+            courseTitle: course.title
+          })) || []
+        ).sort((a, b) => a.date - b.date);
+
+        // Group enrollments by day and calculate cumulative totals
+        const dailyEnrollments = enrollments.reduce((acc, enrollment) => {
+          const dayStr = enrollment.date.toLocaleDateString('default', { 
+            day: 'numeric',
+            month: 'short'
+          });
+          if (!acc[dayStr]) {
+            acc[dayStr] = { new: 0, total: 0 };
+          }
+          acc[dayStr].new += 1;
+          return acc;
+        }, {});
+
+        // Calculate cumulative totals
+        let runningTotal = 0;
+        Object.keys(dailyEnrollments).forEach(day => {
+          runningTotal += dailyEnrollments[day].new;
+          dailyEnrollments[day].total = runningTotal;
+        });
+
+        setEnrollmentHistory(Object.entries(dailyEnrollments).map(([day, data]) => ({
+          day,
+          new: data.new,
+          total: data.total
+        })));
       }
     } catch (err) {
       console.error('Error fetching courses:', err);
@@ -607,13 +670,71 @@ const TeacherDashboard = () => {
       <div className="min-h-screen bg-gray-50 p-6 max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
             Teacher Dashboard
           </h1>
-          <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500">
+          <p className="mt-3 max-w-2xl mx-auto text-lg text-gray-500">
             Manage your courses, track student progress, and engage with your learners
           </p>
         </div>
+
+        {/* Statistics Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">Total Courses</h3>
+                <p className="text-3xl font-bold text-blue-600">{stats.totalCourses}</p>
+              </div>
+            </div>
+          </div>
+
+          <div 
+            className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => setShowEnrollmentChart(!showEnrollmentChart)}
+          >
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-green-100 text-green-600">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">Total Students</h3>
+                <p className="text-3xl font-bold text-green-600">{stats.totalStudents}</p>
+                <p className="text-sm text-gray-500 mt-1">Click to view enrollment history</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">Average Rating</h3>
+                <p className="text-3xl font-bold text-yellow-600">
+                  {stats.averageRating > 0 ? `${stats.averageRating} ★` : '-'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Enrollment Chart */}
+        {showEnrollmentChart && (
+          <div className="mb-8">
+            <EnrollmentChart enrollmentHistory={enrollmentHistory} />
+          </div>
+        )}
 
         {/* Course Selection */}
         <div className="mb-8 bg-white p-6 rounded-lg shadow">
@@ -644,7 +765,7 @@ const TeacherDashboard = () => {
             )}
           </div>
           <select
-            className="block w-full md:w-1/2 p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-lg"
+            className="block w-full md:w-1/2 p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
             value={selectedCourse?.course_id || ''}
             onChange={(e) => {
               const courseId = Number(e.target.value);
@@ -835,7 +956,7 @@ const TeacherDashboard = () => {
                                             fill="currentColor"
                                             viewBox="0 0 20 20"
                                           >
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                           </svg>
                                         ))}
                                       </div>
